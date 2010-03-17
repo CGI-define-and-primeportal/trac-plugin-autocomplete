@@ -1,0 +1,3 @@
+{% for (sid, name, email) in users %}\
+${sid}|${name}|${email}
+{% end %}
