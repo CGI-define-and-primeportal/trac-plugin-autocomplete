@@ -41,7 +41,7 @@ setup(
     packages = ['autocompleteplugin'],
     package_data = {'autocompleteplugin' : ['templates/*.html', 'htdocs/js/*.js', 'htdocs/css/*.css']}, 
     install_requires = [
-        #'trac>=0.11',
+    'python-ldap==2.3.11',
     ],
     entry_points = {
         'trac.plugins': [
