@@ -8,6 +8,8 @@ from trac.web.api import ITemplateStreamFilter, IRequestHandler
 from genshi.builder import tag
 from genshi.filters.transform import Transformer
 from trac.env import IEnvironmentSetupParticipant
+from trac.util.presentation import to_json
+from trac.util.text import to_unicode
 
 import ldap
 import ldap.filter
@@ -44,14 +46,19 @@ class AutoCompleteSystem(Component):
                 users = self._ldap_query(req.args['q'], req.args['limit'])
             else:
                 users = []
-            # TODO: ensure | is escaped in the data
-            return "usersearch.txt", {'users': users}, "text/plain"
+            body = to_json(users).encode('utf8')
+            req.send_response(200)
+            req.send_header('Content-Type', "application/json")
+            req.send_header('Content-Length', len(body))
+            req.end_headers()
+            req.write(body)
 
     # ITemplateStreamFilter
     
     def filter_stream(self, req, method, filename, stream, data):
         if filename == "ticket.html":
             add_stylesheet(req, 'autocomplete/css/jquery.autocomplete.css')
+            add_stylesheet(req, 'autocomplete/css/autocomplete.css')
             add_script(req, 'autocomplete/js/jquery.autocomplete.pack.js')
             add_script(req, 'autocomplete/js/autocomplete.js')
             return stream
@@ -75,7 +82,12 @@ class AutoCompleteSystem(Component):
             ORDER BY s.sid
             LIMIT %s
             """, (search_term,search_term,search_term,limit))
-        return cursor
+        users = []
+        for user in cursor:
+            users.append({'sid': user[0],
+                          'name': user[1],
+                          'email': user[2]})
+        return users
 
     def _ldap_query(self, q, limit=10):
         if not self.ldap_server and self.ldap_who:
@@ -95,9 +107,9 @@ class AutoCompleteSystem(Component):
             if item[0]: # don't process ldap references
                 details = item[1]
                 try:
-                    users.append(("%s\\%s" % (self.ldap_domain, details['sAMAccountName'][0]),
-                                  details['displayName'][0].decode('utf8'),
-                                  details['mail'][0]))
+                    users.append({'sid': "%s\\%s" % (self.ldap_domain, details['sAMAccountName'][0]),
+                                  'name': details['displayName'][0].decode('utf8'),
+                                  'email': details['mail'][0]})
                 except KeyError, e:
                     self.log.debug("Skipping LDAP result %s due to KeyError: %s", item, e)
         return users
