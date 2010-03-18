@@ -2,50 +2,40 @@ from trac.core import Component, implements, TracError
 from trac.config import Option, IntOption, ListOption
 from trac.web import IRequestFilter
 from trac.wiki import parse_args
-from trac.web.chrome import ITemplateProvider, add_stylesheet, add_script
+from trac.web.chrome import ITemplateProvider, add_stylesheet, add_script, add_script_data
 from pkg_resources import resource_filename
 from trac.web.api import ITemplateStreamFilter, IRequestHandler
 from genshi.builder import tag
 from genshi.filters.transform import Transformer
 from trac.env import IEnvironmentSetupParticipant
 from trac.util.presentation import to_json
-from trac.util.text import to_unicode
-
-import ldap
-import ldap.filter
-ldap.set_option(ldap.OPT_REFERRALS, 0)
+from api import IAutoCompleteProvider
+from trac.core import ExtensionPoint
 
 class AutoCompleteSystem(Component):
-    implements(IRequestHandler, ITemplateProvider, ITemplateStreamFilter)
+    implements(IRequestHandler, ITemplateProvider, ITemplateStreamFilter, IAutoCompleteProvider)
 
-    ldap_base      = Option('autocomplete', 'ldap_base', '',"LDAP base")
-    ldap_server    = Option('autocomplete', 'ldap_server', '',"LDAP server hostname")
-    ldap_who       = Option('autocomplete', 'ldap_who', '',"LDAP bind username")
-    ldap_cred      = Option('autocomplete', 'ldap_cred', '',"LDAP bind password")
-    ldap_domain    = Option('autocomplete', 'ldap_domain', '',"AD Domain served by this LDAP server")
-    
+    autocompleters = ExtensionPoint(IAutoCompleteProvider) 
+
+    # IAutoCompleteProvider
+    def get_endpoints(self):
+        return {'url': '/ajax/usersearch/project',
+                'name': 'This Project'}
+
     # ITemplateProvider
     def get_htdocs_dirs(self):
         return [('autocomplete', resource_filename(__name__, 'htdocs'))]
           
     def get_templates_dirs(self):
-        return [(resource_filename(__name__, 'templates'))]
+        return []
 
     # IRequestHandler methods
     def match_request(self, req):
-        return req.path_info.startswith('/ajax/usersearch')
+        return req.path_info.startswith('/ajax/usersearch/project')
 
     def process_request(self, req):
-        if req.path_info.startswith('/ajax/usersearch'):
-            if not req.args.has_key("q"):
-                raise ValueError("search string q not provided")
-
-            if req.args['domain'] == "project":
-                users = self._session_query(req.args['q'], req.args['limit'])
-            elif req.args['domain'] == "groupinfra":
-                users = self._ldap_query(req.args['q'], req.args['limit'])
-            else:
-                users = []
+        if req.path_info.startswith('/ajax/usersearch/project'):
+            users = self._session_query(req.args['q'], req.args['limit'])
             body = to_json(users).encode('utf8')
             req.send_response(200)
             req.send_header('Content-Type', "application/json")
@@ -54,18 +44,44 @@ class AutoCompleteSystem(Component):
             req.write(body)
 
     # ITemplateStreamFilter
-    
     def filter_stream(self, req, method, filename, stream, data):
         if filename == "ticket.html":
             add_stylesheet(req, 'autocomplete/css/jquery.autocomplete.css')
             add_stylesheet(req, 'autocomplete/css/autocomplete.css')
             add_script(req, 'autocomplete/js/jquery.autocomplete.pack.js')
             add_script(req, 'autocomplete/js/autocomplete.js')
+
+            username_completers = []
+            for autocompleter in self.autocompleters:
+                username_completers.append(autocompleter.get_endpoints())
+            add_script_data(req, {'username_completers': username_completers})
+            # we could put this into some other URL which the browser could cache?
+            add_script_data(req, {'project_users': self._all_project_users()})
             return stream
 
         return stream
     
     # internal
+    def _all_project_users(self):
+        db = self.env.get_db_cnx()
+        cursor = db.cursor()
+        cursor.execute("""
+            SELECT DISTINCT s.sid, n.value, e.value 
+            FROM session AS s 
+              LEFT JOIN session_attribute AS n
+                ON (n.sid=s.sid AND n.authenticated=1 AND n.name='name')
+              LEFT JOIN session_attribute AS e
+                ON (e.sid=s.sid AND e.authenticated=1 AND e.name='email')
+            WHERE s.authenticated=1 
+            ORDER BY s.sid
+            """)
+        users = []
+        for user in cursor:
+            users.append({'sid': user[0],
+                          'name': user[1],
+                          'email': user[2]})
+        return users
+        
     def _session_query(self, q, limit=10):
         db = self.env.get_db_cnx()
         cursor = db.cursor()
@@ -87,29 +103,4 @@ class AutoCompleteSystem(Component):
             users.append({'sid': user[0],
                           'name': user[1],
                           'email': user[2]})
-        return users
-
-    def _ldap_query(self, q, limit=10):
-        if not self.ldap_server and self.ldap_who:
-            return []
-        l = ldap.open(self.ldap_server)
-        l.simple_bind_s(self.ldap_who, self.ldap_cred)
-        # support finding people like groupinfra\username
-        if q.startswith("%s\\" % self.ldap_domain):
-            q = q[len(self.ldap_domain) + 1:]
-        safeq = ldap.filter.escape_filter_chars(q)
-        query = "(&(objectClass=user)(|(mail=%s*)(displayName=%s*)(sAMAccountName=%s*)))" % (safeq, safeq, safeq)
-        # we need a string, not unicode, for the attribute name
-        users = []
-        for item in l.search_s(self.ldap_base, ldap.SCOPE_SUBTREE, query, ["mail".encode("UTF8"),
-                                                                           "displayName".encode("UTF8"),
-                                                                           "sAMAccountName".encode("UTF8")]):
-            if item[0]: # don't process ldap references
-                details = item[1]
-                try:
-                    users.append({'sid': "%s\\%s" % (self.ldap_domain, details['sAMAccountName'][0]),
-                                  'name': details['displayName'][0].decode('utf8'),
-                                  'email': details['mail'][0]})
-                except KeyError, e:
-                    self.log.debug("Skipping LDAP result %s due to KeyError: %s", item, e)
         return users

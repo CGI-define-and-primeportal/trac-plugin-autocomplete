@@ -39,9 +39,8 @@ setup(
     """Copyright (c) 2010, Logica. All rights reserved. Released under the 3-clause BSD license. """,
     url = "http://define4.trac.uk.logica.com",
     packages = ['autocompleteplugin'],
-    package_data = {'autocompleteplugin' : ['templates/*.html', 'htdocs/js/*.js', 'htdocs/css/*.css']}, 
+    package_data = {'autocompleteplugin' : ['htdocs/js/*.js', 'htdocs/css/*.css']}, 
     install_requires = [
-    'python-ldap==2.3.11',
     ],
     entry_points = {
         'trac.plugins': [
