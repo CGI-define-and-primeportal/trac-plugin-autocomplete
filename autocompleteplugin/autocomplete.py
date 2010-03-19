@@ -34,21 +34,23 @@ class AutoCompleteBasedOnSessions(Component):
     users based on the session data (anyone who ever logged in.)"""
     implements(IAutoCompleteProvider, IRequestHandler)        
 
+    ownurl = '/ajax/usersearch/project'
+
     # IAutoCompleteProvider
     def get_endpoint(self):
-        return {'url': '/ajax/usersearch/project',
+        return {'url': self.ownurl,
                 'name': 'This Project',
                 'permission': 'TICKET_VIEW'}
 
     # IRequestHandler methods
     def match_request(self, req):
-        return req.path_info.startswith('/ajax/usersearch/project')
+        return req.path_info.startswith(self.ownurl)
 
     def process_request(self, req):
-        if req.path_info.startswith('/ajax/usersearch/project'):
+        if req.path_info.startswith(self.ownurl):
             req.perm.require('TICKET_VIEW')
             users = self._session_query(req.args['q'], req.args['limit'])
-            body = to_json(users).encode('utf8')
+            body = to_json(list(users)).encode('utf8')
             req.send_response(200)
             req.send_header('Content-Type', "application/json")
             req.send_header('Content-Length', len(body))
@@ -71,12 +73,10 @@ class AutoCompleteBasedOnSessions(Component):
             ORDER BY s.sid
             LIMIT %s
             """, (search_term,search_term,search_term,limit))
-        users = []
         for user in cursor:
-            users.append({'sid': user[0],
-                          'name': user[1],
-                          'email': user[2]})
-        return users
+            yield {'sid': user[0],
+                   'name': user[1],
+                   'email': user[2]}
 
 class AutoCompleteSystem(Component):
     implements(ITemplateProvider, ITemplateStreamFilter)
