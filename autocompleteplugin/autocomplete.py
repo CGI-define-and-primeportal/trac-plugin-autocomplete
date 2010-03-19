@@ -109,6 +109,8 @@ class AutoCompleteSystem(Component):
         username_completers = []
         for autocompleter in self.autocompleters:
             endpoint = autocompleter.get_endpoint()
+            if not endpoint:
+                continue
             if endpoint['permission'] is None or req.perm.has_permission(endpoint['permission']):
                 # Maybe we could support some 'local data' mode instead of just url?
                 # after all, we're already putting the project_users list into the page!
