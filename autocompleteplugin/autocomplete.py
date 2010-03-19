@@ -9,13 +9,14 @@ from genshi.builder import tag
 from genshi.filters.transform import Transformer
 from trac.env import IEnvironmentSetupParticipant
 from trac.util.presentation import to_json
-from api import IAutoCompleteProvider
+from api import IAutoCompleteProvider, IAutoCompleteUser
 from trac.core import ExtensionPoint
 
 class AutoCompleteSystem(Component):
-    implements(IRequestHandler, ITemplateProvider, ITemplateStreamFilter, IAutoCompleteProvider)
+    implements(IRequestHandler, ITemplateProvider, ITemplateStreamFilter, IAutoCompleteProvider, IAutoCompleteUser)
 
-    autocompleters = ExtensionPoint(IAutoCompleteProvider) 
+    autocompleters    = ExtensionPoint(IAutoCompleteProvider)
+    autocompleteusers = ExtensionPoint(IAutoCompleteUser)
 
     # IAutoCompleteProvider
     def get_endpoint(self):
@@ -23,6 +24,12 @@ class AutoCompleteSystem(Component):
                 'name': 'This Project',
                 'permission': 'TICKET_VIEW'}
 
+    # IAutoCompleteUser
+    def get_templates(self):
+        return {"ticket.html": ["field-owner",
+                                "field-reporter",
+                                "action_reassign_reassign_owner"]}
+    
     # ITemplateProvider
     def get_htdocs_dirs(self):
         return [('autocomplete', resource_filename(__name__, 'htdocs'))]
@@ -47,28 +54,42 @@ class AutoCompleteSystem(Component):
 
     # ITemplateStreamFilter
     def filter_stream(self, req, method, filename, stream, data):
-        if filename in ("ticket.html",):
-            add_stylesheet(req, 'autocomplete/css/jquery.autocomplete.css')
-            add_stylesheet(req, 'autocomplete/css/autocomplete.css')
-            add_script(req, 'autocomplete/js/jquery.autocomplete.pack.js')
-            add_script(req, 'autocomplete/js/autocomplete.js')
-
-            username_completers = []
-            for autocompleter in self.autocompleters:
-                endpoint = autocompleter.get_endpoint()
-                if endpoint['permission'] is None or req.perm.has_permission(endpoint['permission']):
-                    # Maybe we could support some 'local data' mode instead of just url?
-                    # after all, we're already putting the project_users list into the page!
-                    username_completers.append({'url': req.href(endpoint['url']),
-                                                'name': endpoint['name']})
-            add_script_data(req, {'username_completers': username_completers})
-            # we could put this into some other URL which the browser could cache?
-            add_script_data(req, {'project_users': self._all_project_users()})
-            return stream
-
+        for autocompleteuser in self.autocompleteusers:
+            d = autocompleteuser.get_templates()
+            if filename in d:
+               return  self._enable_autocomplete_for_page(req, method, filename, stream, data, d[filename])
         return stream
     
     # internal
+    def _enable_autocomplete_for_page(self, req, method, filename, stream, data, inputs):
+        add_stylesheet(req, 'autocomplete/css/jquery.autocomplete.css')
+        add_stylesheet(req, 'autocomplete/css/autocomplete.css')
+        add_script(req, 'autocomplete/js/jquery.autocomplete.pack.js')
+        add_script(req, 'autocomplete/js/jquery.tracautocomplete.js')
+        
+        username_completers = []
+        for autocompleter in self.autocompleters:
+            endpoint = autocompleter.get_endpoint()
+            if endpoint['permission'] is None or req.perm.has_permission(endpoint['permission']):
+                # Maybe we could support some 'local data' mode instead of just url?
+                # after all, we're already putting the project_users list into the page!
+                username_completers.append({'url': req.href(endpoint['url']),
+                                            'name': endpoint['name']})
+        add_script_data(req, {'username_completers': username_completers})
+                
+        # we could put this into some other URL which the browser could cache?
+        add_script_data(req, {'project_users': self._all_project_users()})
+        
+        js = "\n".join(['$("#%s").makeTracUserSearch();' % _ for _ in inputs])
+        stream = stream | Transformer('//head').append(tag.script("""
+        jQuery(document).ready(
+        function($) {
+        %s
+        });
+        """ % js,type="text/javascript"))
+        
+        return stream
+    
     def _all_project_users(self):
         db = self.env.get_db_cnx()
         cursor = db.cursor()
