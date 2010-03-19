@@ -1,5 +1,5 @@
 from trac.core import Component, implements, TracError
-from trac.config import Option, IntOption, ListOption
+from trac.config import BoolOption
 from trac.web import IRequestFilter
 from trac.wiki import parse_args
 from trac.web.chrome import ITemplateProvider, add_stylesheet, add_script, add_script_data
@@ -12,30 +12,33 @@ from trac.util.presentation import to_json
 from api import IAutoCompleteProvider, IAutoCompleteUser
 from trac.core import ExtensionPoint
 
-class AutoCompleteSystem(Component):
-    implements(IRequestHandler, ITemplateProvider, ITemplateStreamFilter, IAutoCompleteProvider, IAutoCompleteUser)
+class AutoCompleteForTickets(Component):
+    """Enable auto completing / searchable user lists for ticket
+    pages."""
+    implements(IAutoCompleteUser)
 
-    autocompleters    = ExtensionPoint(IAutoCompleteProvider)
-    autocompleteusers = ExtensionPoint(IAutoCompleteUser)
-
-    # IAutoCompleteProvider
-    def get_endpoint(self):
-        return {'url': '/ajax/usersearch/project',
-                'name': 'This Project',
-                'permission': 'TICKET_VIEW'}
+    autocomplete_on_tickets = BoolOption('autocomplete', 'tickets', True,
+                                         """Enable to provide
+                                         autocomplete/search for user
+                                         related fields on ticket
+                                         pages""")
 
     # IAutoCompleteUser
     def get_templates(self):
         return {"ticket.html": ["field-owner",
                                 "field-reporter",
                                 "action_reassign_reassign_owner"]}
-    
-    # ITemplateProvider
-    def get_htdocs_dirs(self):
-        return [('autocomplete', resource_filename(__name__, 'htdocs'))]
-          
-    def get_templates_dirs(self):
-        return []
+
+class AutoCompleteBasedOnSessions(Component):
+    """Enable auto completing / searchable user lists to search for
+    users based on the session data (anyone who ever logged in.)"""
+    implements(IAutoCompleteProvider, IRequestHandler)        
+
+    # IAutoCompleteProvider
+    def get_endpoint(self):
+        return {'url': '/ajax/usersearch/project',
+                'name': 'This Project',
+                'permission': 'TICKET_VIEW'}
 
     # IRequestHandler methods
     def match_request(self, req):
@@ -51,6 +54,42 @@ class AutoCompleteSystem(Component):
             req.send_header('Content-Length', len(body))
             req.end_headers()
             req.write(body)
+
+    def _session_query(self, q, limit=10):
+        db = self.env.get_db_cnx()
+        cursor = db.cursor()
+        search_term = "%%%s%%" % q
+        cursor.execute("""
+            SELECT DISTINCT s.sid, n.value, e.value 
+            FROM session AS s 
+              LEFT JOIN session_attribute AS n
+                ON (n.sid=s.sid AND n.authenticated=1 AND n.name='name')
+              LEFT JOIN session_attribute AS e
+                ON (e.sid=s.sid AND e.authenticated=1 AND e.name='email')
+            WHERE s.authenticated=1 
+            AND ( s.sid LIKE %s OR n.value LIKE %s OR e.value LIKE %s)
+            ORDER BY s.sid
+            LIMIT %s
+            """, (search_term,search_term,search_term,limit))
+        users = []
+        for user in cursor:
+            users.append({'sid': user[0],
+                          'name': user[1],
+                          'email': user[2]})
+        return users
+
+class AutoCompleteSystem(Component):
+    implements(ITemplateProvider, ITemplateStreamFilter)
+
+    autocompleters    = ExtensionPoint(IAutoCompleteProvider)
+    autocompleteusers = ExtensionPoint(IAutoCompleteUser)
+
+    # ITemplateProvider
+    def get_htdocs_dirs(self):
+        return [('autocomplete', resource_filename(__name__, 'htdocs'))]
+          
+    def get_templates_dirs(self):
+        return []
 
     # ITemplateStreamFilter
     def filter_stream(self, req, method, filename, stream, data):
@@ -73,6 +112,7 @@ class AutoCompleteSystem(Component):
             if endpoint['permission'] is None or req.perm.has_permission(endpoint['permission']):
                 # Maybe we could support some 'local data' mode instead of just url?
                 # after all, we're already putting the project_users list into the page!
+                # that would mean folding AutoCompleteBasedOnSessions back into this component.
                 username_completers.append({'url': req.href(endpoint['url']),
                                             'name': endpoint['name']})
         add_script_data(req, {'username_completers': username_completers})
@@ -110,25 +150,3 @@ class AutoCompleteSystem(Component):
                           'email': user[2]})
         return users
         
-    def _session_query(self, q, limit=10):
-        db = self.env.get_db_cnx()
-        cursor = db.cursor()
-        search_term = "%%%s%%" % q
-        cursor.execute("""
-            SELECT DISTINCT s.sid, n.value, e.value 
-            FROM session AS s 
-              LEFT JOIN session_attribute AS n
-                ON (n.sid=s.sid AND n.authenticated=1 AND n.name='name')
-              LEFT JOIN session_attribute AS e
-                ON (e.sid=s.sid AND e.authenticated=1 AND e.name='email')
-            WHERE s.authenticated=1 
-            AND ( s.sid LIKE %s OR n.value LIKE %s OR e.value LIKE %s)
-            ORDER BY s.sid
-            LIMIT %s
-            """, (search_term,search_term,search_term,limit))
-        users = []
-        for user in cursor:
-            users.append({'sid': user[0],
-                          'name': user[1],
-                          'email': user[2]})
-        return users

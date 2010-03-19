@@ -9,7 +9,8 @@ class IAutoCompleteProvider(Interface):
          'name': 'Search Domain',
          'permission': 'SEARCH_AREA'}
 
-         permission can be None
+         permission can be None. The url will be adjusted to be
+         correct for this Trac instance.
          """
         
 class IAutoCompleteUser(Interface):
