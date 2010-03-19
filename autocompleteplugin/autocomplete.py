@@ -18,9 +18,10 @@ class AutoCompleteSystem(Component):
     autocompleters = ExtensionPoint(IAutoCompleteProvider) 
 
     # IAutoCompleteProvider
-    def get_endpoints(self):
+    def get_endpoint(self):
         return {'url': '/ajax/usersearch/project',
-                'name': 'This Project'}
+                'name': 'This Project',
+                'permission': 'TICKET_VIEW'}
 
     # ITemplateProvider
     def get_htdocs_dirs(self):
@@ -35,6 +36,7 @@ class AutoCompleteSystem(Component):
 
     def process_request(self, req):
         if req.path_info.startswith('/ajax/usersearch/project'):
+            req.perm.require('TICKET_VIEW')
             users = self._session_query(req.args['q'], req.args['limit'])
             body = to_json(users).encode('utf8')
             req.send_response(200)
@@ -45,7 +47,7 @@ class AutoCompleteSystem(Component):
 
     # ITemplateStreamFilter
     def filter_stream(self, req, method, filename, stream, data):
-        if filename == "ticket.html":
+        if filename in ("ticket.html",):
             add_stylesheet(req, 'autocomplete/css/jquery.autocomplete.css')
             add_stylesheet(req, 'autocomplete/css/autocomplete.css')
             add_script(req, 'autocomplete/js/jquery.autocomplete.pack.js')
@@ -53,7 +55,12 @@ class AutoCompleteSystem(Component):
 
             username_completers = []
             for autocompleter in self.autocompleters:
-                username_completers.append(autocompleter.get_endpoints())
+                endpoint = autocompleter.get_endpoint()
+                if endpoint['permission'] is None or req.perm.has_permission(endpoint['permission']):
+                    # Maybe we could support some 'local data' mode instead of just url?
+                    # after all, we're already putting the project_users list into the page!
+                    username_completers.append({'url': req.href(endpoint['url']),
+                                                'name': endpoint['name']})
             add_script_data(req, {'username_completers': username_completers})
             # we could put this into some other URL which the browser could cache?
             add_script_data(req, {'project_users': self._all_project_users()})
