@@ -11,6 +11,8 @@ from trac.env import IEnvironmentSetupParticipant
 from trac.util.presentation import to_json
 from api import IAutoCompleteProvider, IAutoCompleteUser
 from trac.core import ExtensionPoint
+from trac.perm import PermissionSystem
+from trac.web.session import DetachedSession
 
 class AutoCompleteForTickets(Component):
     """Enable auto completing / searchable user lists for ticket
@@ -28,18 +30,70 @@ class AutoCompleteForTickets(Component):
         return {"ticket.html": ["field-owner",
                                 "field-reporter",
                                 "action_reassign_reassign_owner"]}
+    
+class AutoCompleteBasedOnPermissions(Component):
+    """Enable auto completing / searchable user lists to search for
+    users based on the session data (anyone who ever logged in.)"""
+    implements(IAutoCompleteProvider, IRequestHandler)
+
+
+    autocomplete_on_tickets = BoolOption('autocomplete', 'permitted users', True,
+                                         """Enable to provide search
+                                         for users who are listed in
+                                         permissions. Probably you
+                                         don't want this if your
+                                         project is open to all of a
+                                         group.""")    
+
+    ownurl = '/ajax/usersearch/permissions'
+
+    # IAutoCompleteProvider
+    def get_endpoint(self):
+        return {'url': self.ownurl,
+                'name': 'Permitted Users of %s' % self.env.project_name,
+                'permission': 'TICKET_VIEW'}
+
+    # IRequestHandler methods
+    def match_request(self, req):
+        return req.path_info.startswith(self.ownurl)
+
+    def process_request(self, req):
+        if req.path_info.startswith(self.ownurl):
+            req.perm.require('TICKET_VIEW')
+            users = self._users_query(req.args['q'], req.args['limit'])
+            body = to_json(list(users)).encode('utf8')
+            req.send_response(200)
+            req.send_header('Content-Type', "application/json")
+            req.send_header('Content-Length', len(body))
+            req.end_headers()
+            req.write(body)
+
+    def _users_query(self, q, limit=10):
+        perm = PermissionSystem(self.env)
+        users = []
+        for sid, permission in perm.get_all_permissions():
+            # gotta get rid of groups...
+            if sid in ("anonymous","authenticated","admin"):
+                continue
+            users.append(sid)
+        for sid in sorted(set(users)):
+            if q in sid:
+                session = DetachedSession(self.env, sid)
+                yield {'sid': sid,
+                       'name': session.get('name',''),
+                       'email': session.get('email','Never logged in')}
 
 class AutoCompleteBasedOnSessions(Component):
     """Enable auto completing / searchable user lists to search for
     users based on the session data (anyone who ever logged in.)"""
     implements(IAutoCompleteProvider, IRequestHandler)        
 
-    ownurl = '/ajax/usersearch/project'
+    ownurl = '/ajax/usersearch/sessions'
 
     # IAutoCompleteProvider
     def get_endpoint(self):
         return {'url': self.ownurl,
-                'name': 'This Project',
+                'name': 'Current Users of %s' % self.env.project_name,
                 'permission': 'TICKET_VIEW'}
 
     # IRequestHandler methods
