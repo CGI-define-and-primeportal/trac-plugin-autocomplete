@@ -57,10 +57,19 @@ jQuery.fn.makeTracUserSearch = function() {
 			     option.appendChild(document.createTextNode(project_users[n].name));
 			     optgroup.append(option);
 			 };
+			 optgroup = $('<optgroup label="Manual Entry"></optgroup>');
+			 selectfield.append(optgroup);
+			 // http://timplode.com/wp-content/uploads/2009/07/ie_test.html :-(
+			 option = document.createElement('OPTION');
+			 option.value = "";
+			 option.appendChild(document.createTextNode("Type manually..."));
+			 optgroup.append(option);
+
 			 selectfield.change(function() {
 						if (selectfield[0].selectedIndex == 0)
 						    return;
-						if (selectfield[0].selectedIndex > username_completers.length)
+						if ((selectfield[0].selectedIndex > username_completers.length) &&
+						    (selectfield[0].selectedIndex != selectfield[0].options.length - 1))
 						    return;
 						var url = selectfield.val();
 						var searchname = selectfield.find("option:selected").text();
@@ -69,8 +78,13 @@ jQuery.fn.makeTracUserSearch = function() {
 						    inputfield[0].size = size;
 						}
 						selectfield.replaceWith(inputfield);
-						inputfield.autocomplete(url, settings);
-						var searchnote = $("<div class='searchnote'>").text("Searching " + searchname);
+						var searchnote;
+						if (url == '') {
+						    searchnote = $("<div class='searchnote'>").text("Manual entry...");
+						} else {
+						    inputfield.autocomplete(url, settings);
+						    searchnote = $("<div class='searchnote'>").text("Searching " + searchname);
+						}
 						var cancel = $("<img class=\"cancelsearch\" src='/chrome/common/parent.png'/>");
 						cancel.click(function() {
 								 cancel.remove();
