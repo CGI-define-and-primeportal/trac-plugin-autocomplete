@@ -24,7 +24,9 @@ jQuery.fn.makeTracUserSearch = function() {
 			 var klass = $(infield).attr('class');
 			 var width = $(infield).width();
 			 var selectfield = $("<select id='" + id + "' name='" + name + "' class='" + klass + "'/>");
-			 selectfield.attr('style','width: ' + width + 'px');
+			 if (width > 0) {
+			     selectfield.attr('style','width: ' + width + 'px');
+			 }
 			 var currentvalue = $(infield).val();
 			 $(infield).replaceWith(selectfield);
 			 var optgroup;
@@ -46,7 +48,7 @@ jQuery.fn.makeTracUserSearch = function() {
 			     option.appendChild(document.createTextNode(username_completers[n].name));
 			     optgroup.append(option);
 			 };
-			 optgroup = $('<optgroup label="Project Users"></optgroup>');
+			 optgroup = $('<optgroup label="Current Project Users"></optgroup>');
 			 selectfield.append(optgroup);
 			 for ( n in project_users ) {
 			     // http://timplode.com/wp-content/uploads/2009/07/ie_test.html :-(

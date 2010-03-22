@@ -37,7 +37,7 @@ class AutoCompleteBasedOnPermissions(Component):
     implements(IAutoCompleteProvider, IRequestHandler)
 
 
-    autocomplete_on_tickets = BoolOption('autocomplete', 'permitted users', True,
+    autocomplete_on_tickets = BoolOption('autocomplete', 'listed members', True,
                                          """Enable to provide search
                                          for users who are listed in
                                          permissions. Probably you
@@ -50,7 +50,7 @@ class AutoCompleteBasedOnPermissions(Component):
     # IAutoCompleteProvider
     def get_endpoint(self):
         return {'url': self.ownurl,
-                'name': 'Permitted Users of %s' % self.env.project_name,
+                'name': 'Members of %s' % self.env.project_name,
                 'permission': 'TICKET_VIEW'}
 
     # IRequestHandler methods
