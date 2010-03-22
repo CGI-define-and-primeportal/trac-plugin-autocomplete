@@ -1,5 +1,5 @@
 from trac.core import Component, implements, TracError
-from trac.config import BoolOption
+from trac.config import BoolOption, ListOption
 from trac.web import IRequestFilter
 from trac.wiki import parse_args
 from trac.web.chrome import ITemplateProvider, add_stylesheet, add_script, add_script_data
@@ -13,6 +13,11 @@ from api import IAutoCompleteProvider, IAutoCompleteUser
 from trac.core import ExtensionPoint
 from trac.perm import PermissionSystem
 from trac.web.session import DetachedSession
+
+try:
+    from simplifiedpermissionsadminplugin import SimplifiedPermissions
+except ImportError, e:
+    SimplifiedPermissions = None
 
 class AutoCompleteForTickets(Component):
     """Enable auto completing / searchable user lists for ticket
@@ -69,19 +74,28 @@ class AutoCompleteBasedOnPermissions(Component):
             req.write(body)
 
     def _users_query(self, q, limit=10):
-        perm = PermissionSystem(self.env)
-        users = []
-        for sid, permission in perm.get_all_permissions():
-            # gotta get rid of groups...
-            if sid in ("anonymous","authenticated","admin"):
-                continue
-            users.append(sid)
-        for sid in sorted(set(users)):
-            if q in sid:
-                session = DetachedSession(self.env, sid)
-                yield {'sid': sid,
-                       'name': session.get('name',''),
-                       'email': session.get('email','Never logged in')}
+        if SimplifiedPermissions and self.env.is_enabled(SimplifiedPermissions):
+            sp = SimplifiedPermissions(self.env)
+            for group, data in sp.group_memberships().items():
+                for member in data['members']:
+                    if q in member.sid:
+                        yield {'sid': member.sid,
+                               'name': member.get('name',"%s (never logged in)" % member.sid),
+                               'email': member.get('email','')}
+        else:
+            perm = PermissionSystem(self.env)
+            users = []
+            for sid, permission in perm.get_all_permissions():
+                # gotta get rid of groups...
+                if sid in ("anonymous","authenticated","admin"):
+                    continue
+                users.append(sid)
+            for sid in sorted(set(users)):
+                if q in sid:
+                    session = DetachedSession(self.env, sid)
+                    yield {'sid': sid,
+                           'name': session.get('name',''),
+                           'email': session.get('email','Never logged in')}
 
 class AutoCompleteBasedOnSessions(Component):
     """Enable auto completing / searchable user lists to search for
@@ -93,7 +107,7 @@ class AutoCompleteBasedOnSessions(Component):
     # IAutoCompleteProvider
     def get_endpoint(self):
         return {'url': self.ownurl,
-                'name': 'Current Users of %s' % self.env.project_name,
+                'name': 'People who accessed %s' % self.env.project_name,
                 'permission': 'TICKET_VIEW'}
 
     # IRequestHandler methods
@@ -174,7 +188,7 @@ class AutoCompleteSystem(Component):
         add_script_data(req, {'username_completers': username_completers})
                 
         # we could put this into some other URL which the browser could cache?
-        add_script_data(req, {'project_users': list(self._all_project_users())})
+        add_script_data(req, {'project_users': self._all_project_users()})
         
         js = "\n".join(['$("#%s").makeTracUserSearch();' % _ for _ in inputs])
         stream = stream | Transformer('//head').append(tag.script("""
@@ -187,8 +201,28 @@ class AutoCompleteSystem(Component):
         return stream
     
     def _all_project_users(self):
-        for username, name, email in self.env.get_known_users():
-            yield {'sid': username,
-                   'name': name,
-                   'email': email}
+        people = {}
+        session_users = False
+        if SimplifiedPermissions and self.env.is_enabled(SimplifiedPermissions):
+            sp = SimplifiedPermissions(self.env)
+            for group, data in sp.group_memberships().items():
+                group = group.title().replace("_"," ")
+                if data['domains']:
+                    group = "%s (Plus: %s)" % (group, ", ".join(data['domains']))
+                    session_users = True
+                people[group] = []
+                for member in data['members']:
+                    people[group].append({'sid': member.sid,
+                                          'name': member.get('name',"%s (never logged in)" % member.sid),
+                                          'email': member.get('email','')})
+        else:
+            session_users = True
+        if session_users:
+            people['Current Users'] = []
+            for username, name, email in self.env.get_known_users():
+                people['Current Users'].append({'sid': username,
+                                                'name': name,
+                                                'email': email})
+
+        return people
         
