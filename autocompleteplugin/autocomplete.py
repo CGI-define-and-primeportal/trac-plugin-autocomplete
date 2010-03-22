@@ -174,7 +174,7 @@ class AutoCompleteSystem(Component):
         add_script_data(req, {'username_completers': username_completers})
                 
         # we could put this into some other URL which the browser could cache?
-        add_script_data(req, {'project_users': self._all_project_users()})
+        add_script_data(req, {'project_users': list(self._all_project_users())})
         
         js = "\n".join(['$("#%s").makeTracUserSearch();' % _ for _ in inputs])
         stream = stream | Transformer('//head').append(tag.script("""
@@ -187,22 +187,8 @@ class AutoCompleteSystem(Component):
         return stream
     
     def _all_project_users(self):
-        db = self.env.get_db_cnx()
-        cursor = db.cursor()
-        cursor.execute("""
-            SELECT DISTINCT s.sid, n.value, e.value 
-            FROM session AS s 
-              LEFT JOIN session_attribute AS n
-                ON (n.sid=s.sid AND n.authenticated=1 AND n.name='name')
-              LEFT JOIN session_attribute AS e
-                ON (e.sid=s.sid AND e.authenticated=1 AND e.name='email')
-            WHERE s.authenticated=1 
-            ORDER BY s.sid
-            """)
-        users = []
-        for user in cursor:
-            users.append({'sid': user[0],
-                          'name': user[1],
-                          'email': user[2]})
-        return users
+        for username, name, email in self.env.get_known_users():
+            yield {'sid': username,
+                   'name': name,
+                   'email': email}
         
