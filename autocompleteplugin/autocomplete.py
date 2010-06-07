@@ -164,7 +164,7 @@ class AutoCompleteSystem(Component):
         for autocompleteuser in self.autocompleteusers:
             d = autocompleteuser.get_templates()
             if filename in d:
-               return  self._enable_autocomplete_for_page(req, method, filename, stream, data, d[filename])
+                stream = self._enable_autocomplete_for_page(req, method, filename, stream, data, d[filename])
         return stream
     
     # internal
@@ -197,7 +197,6 @@ class AutoCompleteSystem(Component):
         %s
         });
         """ % js,type="text/javascript"))
-        
         return stream
     
     def _all_project_users(self):
