@@ -34,7 +34,8 @@ class AutoCompleteForTickets(Component):
     def get_templates(self):
         return {"ticket.html": ["#field-owner",
                                 "#field-reporter",
-                                "#action_reassign_reassign_owner"]}
+                                "#action_reassign_reassign_owner"],
+                "admin_components.html": ["input[name='owner']"]}
 
 class AutoCompleteBasedOnPermissions(Component):
     """Enable auto completing / searchable user lists to search for
