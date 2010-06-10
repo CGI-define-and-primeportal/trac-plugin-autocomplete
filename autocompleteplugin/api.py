@@ -17,13 +17,14 @@ class IAutoCompleteUser(Interface):
     """Extention point interface for components showing pages which
     need autocompleting fields.
 
-    The genshi template should include HTML input elements with IDs
-    like those given in the list.  They will be converted into select
-    elements with search facilities, based on which
-    IAutoCompleteProviders are available and the current user permissions.
+    The genshi template should include HTML elements which match
+    jQuery selectors given in the list. They will be converted into
+    select elements with search facilities, based on which
+    IAutoCompleteProviders are available and the current user
+    permissions.
     """
 
     def get_templates():
         """Return a dictionary like:
-        {''ticket.html': ['field-owner','field-reporter','action_reassign_reassign_owner']}
+        {''ticket.html': ['#field-owner','#field-reporter','#action_reassign_reassign_owner']}
         """
