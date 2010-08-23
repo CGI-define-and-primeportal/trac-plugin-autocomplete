@@ -13,6 +13,7 @@ from api import IAutoCompleteProvider, IAutoCompleteUser
 from trac.core import ExtensionPoint
 from trac.perm import PermissionSystem
 from trac.web.session import DetachedSession
+import itertools
 
 try:
     from simplifiedpermissionsadminplugin import SimplifiedPermissions
@@ -66,7 +67,7 @@ class AutoCompleteBasedOnPermissions(Component):
     def process_request(self, req):
         if req.path_info.startswith(self.ownurl):
             req.perm.require('TICKET_VIEW')
-            users = self._users_query(req.args['q'], req.args['limit'])
+            users = self._users_query(req.args['q'], int(req.args.get('limit', 10)))
             body = to_json(list(users)).encode('utf8')
             req.send_response(200)
             req.send_header('Content-Type', "application/json")
@@ -118,7 +119,7 @@ class AutoCompleteBasedOnSessions(Component):
     def process_request(self, req):
         if req.path_info.startswith(self.ownurl):
             req.perm.require('TICKET_VIEW')
-            users = self._session_query(req.args['q'], req.args['limit'])
+            users = self._session_query(req.args['q'], int(req.args.get('limit', 10)))
             body = to_json(list(users)).encode('utf8')
             req.send_response(200)
             req.send_header('Content-Type', "application/json")
@@ -127,25 +128,12 @@ class AutoCompleteBasedOnSessions(Component):
             req.write(body)
 
     def _session_query(self, q, limit=10):
-        db = self.env.get_db_cnx()
-        cursor = db.cursor()
-        search_term = "%%%s%%" % q
-        cursor.execute("""
-            SELECT DISTINCT s.sid, n.value, e.value 
-            FROM session AS s 
-              LEFT JOIN session_attribute AS n
-                ON (n.sid=s.sid AND n.authenticated=1 AND n.name='name')
-              LEFT JOIN session_attribute AS e
-                ON (e.sid=s.sid AND e.authenticated=1 AND e.name='email')
-            WHERE s.authenticated=1 
-            AND ( s.sid LIKE %s OR n.value LIKE %s OR e.value LIKE %s)
-            ORDER BY s.sid
-            LIMIT %s
-            """, (search_term,search_term,search_term,limit))
-        for user in cursor:
-            yield {'sid': user[0],
-                   'name': user[1],
-                   'email': user[2]}
+        for user in itertools.islice(self.env.get_known_users(), 0, limit):
+            if q.lower() in ''.join(user).lower():
+                yield {'sid': user[0],
+                       'name': user[1],
+                       'email': user[2]}
+
 
 class AutoCompleteSystem(Component):
     implements(ITemplateProvider, ITemplateStreamFilter)
@@ -170,9 +158,7 @@ class AutoCompleteSystem(Component):
     
     # internal
     def _enable_autocomplete_for_page(self, req, method, filename, stream, data, inputs):
-        add_stylesheet(req, 'autocomplete/css/jquery.autocomplete.css')
         add_stylesheet(req, 'autocomplete/css/autocomplete.css')
-        add_script(req, 'autocomplete/js/jquery.autocomplete.pack.js')
         add_script(req, 'autocomplete/js/jquery.tracautocomplete.js')
         
         username_completers = []
