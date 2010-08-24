@@ -2,6 +2,95 @@ jQuery.fn.makeTracUserSearch = function(method, options) {
   method = method || 'select'
   if (method == 'text') {
     return this.each(function(){
+        options = options || {
+            addButtonLabel: 'Add cc',
+            group: 1, // 0: project members, 1: ppl who've accessed project
+          }
+        var infield = $(this)
+        var id = infield.attr('id')
+        var name = infield.attr('name')
+        function split(val) {
+          return $.grep(val.split(/,\s*/), function(i) { return i && true })
+        }
+        var entries = split(infield.val())
+        // Rename and empty the input so it won't be post:ed
+        infield.attr('id', id + '-input').attr('name', '').val('')
+        infield.parent().append(
+          $('<button>').text(options.addButtonLabel).button().click(
+            function(e) {
+              $('#' + id).data('addEntry')(infield.val())
+              return false
+            }
+          )
+        )
+        // Create a hidden input with the value
+        var entry = $('<input type="hidden">').attr('id', id).attr('name', name).val(entries.join(', '))
+        // Holder for the removal buttons
+        var boxHolder = $('<div>').addClass(id + '-buttons')
+        entry.data('updateBoxes', function() {
+          boxHolder.empty()
+          $.each(entries, function(idx, val) {
+            boxHolder.append(
+              $('<button>').text(val)
+            )
+          })
+          $('.' + id + '-buttons button')
+              .attr('title', 'Click to remove')
+              .button()
+              .css('float','left').css('margin','2px')
+              .click(function(e) { 
+                entry.data('removeEntry')($(this).text())
+                return false 
+              })
+        })
+        entry.data('addEntry', function(val) {
+          if (val && $.inArray(val, entries) == -1) {
+            // Don't add dups
+            entries.push(val)
+            infield.val('')
+            entry.val(entries.join(', '))
+            entry.data('updateBoxes')()
+          }
+        })
+        entry.data('removeEntry', function(val) {
+          entries = $.grep(entries, function(e, i) { return e != val })
+          entry.val(entries.join(', '))
+          entry.data('updateBoxes')()
+        })
+        infield.parent().append(entry).append(boxHolder)
+        entry.data('updateBoxes')()
+        infield.autocomplete({
+          source: function(request, response) {
+            $.ajax({
+              url: username_completers[options.group].url,
+              data: {q: request.term,
+                     limit: 20
+              },
+              success: function(data) {
+                response($.map(data, function(row) { 
+                  return { label: row.name, value:row.sid }
+                }))
+              }
+            })
+          },
+          search: function() {
+            // custom minLength
+            var term = this.value
+            if (term.length < 3) {
+              return false
+            }
+          },
+          focus: function() {
+            // prevent value inserted on focus
+            return false
+          },
+          select: function(event, ui) {
+            entry.data('addEntry')(ui.item.value)
+            return false
+          }
+        })
+      })
+      return infield
   } else {
     return this.each(function(){
       var settings = options || {minChars: 3,
