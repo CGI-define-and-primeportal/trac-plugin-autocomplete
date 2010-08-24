@@ -64,7 +64,6 @@ jQuery.fn.makeTracUserSearch = function(method, options) {
             var matches = []
             $.each(project_users, function(groupName) {
               $.each(project_users[groupName], function(i, user) {
-                if (!user) { return }
                 var s = user.sid.toLowerCase() + user.email.toLowerCase() + user.name.toLowerCase()
                 if (s.indexOf(request.term.toLowerCase()) != -1) {
                   matches.push({label:user.name, value:user.sid})
@@ -94,21 +93,24 @@ jQuery.fn.makeTracUserSearch = function(method, options) {
   } else {
     // Handle 'select' case (default)
     return this.each(function(){
-      var settings = options || {minChars: 3,
-        width: 500,
-        dataType: "json",
-        parse: function(data) {
-        return $.map(data, function(row) {
-          return {data: row,
-            value: row.sid,
-            result: row.sid};
-        });
-      },
-      formatItem: function(row) {
-        return "<span class=\"username\">" + row.name + "</span><br/>" + 
-        "<span class=\"detail\">" + row.sid + " &lt;" + row.email + "&gt</span>";
-      }
-      };
+      // Merge default settings with options
+      var settings = $.extend({
+        minLength: 3,
+        delay: 500,
+        source: function(request, response) {
+          $.ajax({
+            url: settings.url,
+            data: {q: request.term, limit: 20},
+            success: function(data) {
+              // Map the response to the autocomplete dropdown
+              response($.map(data, function(row) {
+                return {data: row, value: row.sid,
+                  label: $.format('$1 <$2>', row.name, row.email)}
+              }))
+            }
+          })
+        },
+      }, options);
 
       var infield = this;
       var id = infield.id;
@@ -180,7 +182,8 @@ jQuery.fn.makeTracUserSearch = function(method, options) {
         if (url == '') {
           searchnote = $("<div class='searchnote'>").text("Manual entry...");
         } else {
-          inputfield.autocomplete(url, settings);
+          settings.url = url
+          inputfield.autocomplete(settings);
           searchnote = $("<div class='searchnote'>").text("Searching " + searchname);
         }
         var cancel = $("<img class=\"cancelsearch\" src='/chrome/common/parent.png'/>");
