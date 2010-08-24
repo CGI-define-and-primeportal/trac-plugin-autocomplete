@@ -1,5 +1,8 @@
-jQuery.fn.makeTracUserSearch = function() {
+jQuery.fn.makeTracUserSearch = function(method, options) {
+  method = method || 'select'
+  if (method == 'text') {
     return this.each(function(){
+  } else {
 
 			 var settings = {minChars: 3,
 					 width: 500,
@@ -107,5 +110,6 @@ jQuery.fn.makeTracUserSearch = function() {
 					    });
 			 return selectfield;
 		     });
+  }
 };
 

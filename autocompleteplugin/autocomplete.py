@@ -33,10 +33,10 @@ class AutoCompleteForTickets(Component):
 
     # IAutoCompleteUser
     def get_templates(self):
-        return {"ticket.html": ["#field-owner",
-                                "#field-reporter",
-                                "#action_reassign_reassign_owner"],
-                "admin_components.html": ["input[name='owner']"]}
+        return {"ticket.html": [("#field-owner", 'select', {}),
+                                ("#field-reporter", 'select', {}),
+                                ("#action_reassign_reassign_owner", 'select', {})],
+                "admin_components.html": [("input[name='owner']", 'select', {})]}
 
 class AutoCompleteBasedOnPermissions(Component):
     """Enable auto completing / searchable user lists to search for
@@ -176,8 +176,16 @@ class AutoCompleteSystem(Component):
                 
         # we could put this into some other URL which the browser could cache?
         add_script_data(req, {'project_users': self._all_project_users()})
-        
-        js = "\n".join(['$("%s").makeTracUserSearch();' % _ for _ in inputs])
+        js = ''
+        for selector, method_, options in inputs:
+            js += '$("%s").makeTracUserSearch("%s"' % (selector, method_ or 'select')
+            if options:
+                if not isinstance(options, basestring):
+                    js += ', %s' % to_json(options)
+                else:
+                    js += ', "%s"' % options
+            js += ')\n'
+                
         stream = stream | Transformer('//head').append(tag.script("""
         jQuery(document).ready(
         function($) {
