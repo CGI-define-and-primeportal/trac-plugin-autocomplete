@@ -35,7 +35,8 @@ class AutoCompleteForTickets(Component):
     def get_templates(self):
         return {"ticket.html": [("#field-owner", 'select', {}),
                                 ("#field-reporter", 'select', {}),
-                                ("#action_reassign_reassign_owner", 'select', {})],
+                                ("#action_reassign_reassign_owner", 'select', {}),
+                                ('#field-cc', 'text', {})],
                 "admin_components.html": [("input[name='owner']", 'select', {})]}
 
 class AutoCompleteBasedOnPermissions(Component):
