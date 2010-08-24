@@ -61,17 +61,17 @@ jQuery.fn.makeTracUserSearch = function(method, options) {
         entry.data('updateBoxes')()
         infield.autocomplete({
           source: function(request, response) {
-            $.ajax({
-              url: username_completers[options.group].url,
-              data: {q: request.term,
-                     limit: 20
-              },
-              success: function(data) {
-                response($.map(data, function(row) { 
-                  return { label: row.name, value:row.sid }
-                }))
-              }
+            var matches = []
+            $.each(project_users, function(groupName) {
+              $.each(project_users[groupName], function(i, user) {
+                if (!user) { return }
+                var s = user.sid.toLowerCase() + user.email.toLowerCase() + user.name.toLowerCase()
+                if (s.indexOf(request.term.toLowerCase()) != -1) {
+                  matches.push({label:user.name, value:user.sid})
+                }
+              })
             })
+            response(matches)
           },
           search: function() {
             // custom minLength
@@ -92,6 +92,7 @@ jQuery.fn.makeTracUserSearch = function(method, options) {
       })
       return infield
   } else {
+    // Handle 'select' case (default)
     return this.each(function(){
       var settings = options || {minChars: 3,
         width: 500,
