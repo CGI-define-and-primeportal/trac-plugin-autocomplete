@@ -43,7 +43,7 @@ jQuery.fn.makeTracUserSearch = function(method, options) {
         var entries = split(infield.val())
         // Rename and empty the input so it won't be post:ed
         infield.attr('id', id + '-input').attr('name', '').val('')
-        infield.parent().append(
+        infield.after(
           $('<button>').attr(options.button.attr)
                        .text(options.button.text)
                        .button()

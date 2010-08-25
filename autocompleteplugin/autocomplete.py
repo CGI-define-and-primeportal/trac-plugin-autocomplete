@@ -67,7 +67,9 @@ class AutoCompleteForTickets(Component):
         return {"ticket.html": [("#field-owner", 'select', {}),
                                 ("#field-reporter", 'select', {}),
                                 ("#action_reassign_reassign_owner", 'select', {}),
-                                ('#field-cc', 'text', {})],
+                                ('#field-cc', 'text', {}),
+                                # turn off autocomplete and just use the "boxes"
+                                ('#field-keywords', 'text', '{source: $.noop}')],
                 "admin_components.html": [("input[name='owner']", 'select', {})]}
 
 class AutoCompleteBasedOnPermissions(Component):
