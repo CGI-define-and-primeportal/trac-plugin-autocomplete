@@ -2,10 +2,7 @@ jQuery.fn.makeTracUserSearch = function(method, options) {
   method = method || 'select'
   if (method == 'text') {
     return this.each(function(){
-        options = options || {
-            addButtonLabel: 'Add cc',
-            group: 1, // 0: project members, 1: ppl who've accessed project
-          }
+        options = $.extend({button: {text:'Add', attr:{}}}, options)
         var infield = $(this)
         var id = infield.attr('id')
         var name = infield.attr('name')
@@ -16,12 +13,13 @@ jQuery.fn.makeTracUserSearch = function(method, options) {
         // Rename and empty the input so it won't be post:ed
         infield.attr('id', id + '-input').attr('name', '').val('')
         infield.parent().append(
-          $('<button>').text(options.addButtonLabel).button().click(
-            function(e) {
-              $('#' + id).data('addEntry')(infield.val())
-              return false
-            }
-          )
+          $('<button>').attr(options.button.attr)
+                       .text(options.button.text)
+                       .button()
+                       .click(function(e) {
+                         $('#' + id).data('addEntry')(infield.val())
+                         return false
+                       })
         )
         // Create a hidden input with the value
         var entry = $('<input type="hidden">').attr('id', id).attr('name', name).val(entries.join(', '))
@@ -66,7 +64,11 @@ jQuery.fn.makeTracUserSearch = function(method, options) {
               $.each(project_users[groupName], function(i, user) {
                 var s = user.sid.toLowerCase() + user.email.toLowerCase() + user.name.toLowerCase()
                 if (s.indexOf(request.term.toLowerCase()) != -1) {
-                  matches.push({label:user.name, value:user.sid})
+                  var label = user.name || user.sid
+                  if (user.email) {
+                    label += $.format(' <$1>', user.email)
+                  }
+                  matches.push({label: label, value: user.sid})
                 }
               })
             })
@@ -186,7 +188,7 @@ jQuery.fn.makeTracUserSearch = function(method, options) {
           inputfield.autocomplete(settings);
           searchnote = $("<div class='searchnote'>").text("Searching " + searchname);
         }
-        var cancel = $("<img class=\"cancelsearch\" src='/chrome/common/parent.png'/>");
+        var cancel = $('<img class="cancelsearch" alt="cancel" title="Cancel Search" src="/chrome/common/parent.png"/>');
         cancel.click(function() {
           cancel.remove();
           searchnote.remove();
