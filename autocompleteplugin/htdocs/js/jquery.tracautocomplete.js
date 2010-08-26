@@ -33,12 +33,54 @@ jQuery.fn.makeTracUserSearch = function(method, options) {
   method = method || 'select'
   if (method == 'text') {
     return this.each(function(){
-        options = $.extend({button: {text:'Add', attr:{}}}, options)
+        options = $.extend({ 
+                            // Default option values
+                            // Button with label and attributes
+                            button: {text:'Add', attr:{}},
+                            // Delimeter expected
+                            delimiter: /,\s*/,
+                            // Autocomplete source
+                            source: function(request, response) {
+                              var matches = []
+                              $.each(project_users, function(groupName) {
+                                $.each(project_users[groupName], function(i, user) {
+                                  var s = user.sid.toLowerCase() + user.email.toLowerCase() + user.name.toLowerCase()
+                                  if (s.indexOf(request.term.toLowerCase()) != -1) {
+                                    var label = user.name || user.sid
+                                    if (user.email) {
+                                      label += $.format(' <$1>', user.email)
+                                    }
+                                    matches.push({label: label, value: user.sid})
+                                  }
+                                })
+                              })
+                              response(matches)
+                            },
+                            // Autocomplete search
+                            search: function() {
+                              // custom minLength
+                              var term = this.value
+                              if (term.length < 3) {
+                                return false
+                              }
+                            },
+                            // Autocomplete focus
+                            focus: function() {
+                              // prevent value inserted on focus
+                              return false
+                            },
+                            // Autocomplete select
+                            select: function(event, ui) {
+                              entry.data('addEntry')(ui.item.value)
+                              return false
+                            }
+                           },
+                           options)
         var infield = $(this)
         var id = infield.attr('id')
         var name = infield.attr('name')
         function split(val) {
-          return $.grep(val.split(/,\s*/), function(i) { return i && true })
+          return $.grep(val.split(options.delimiter), function(i) { return i && true })
         }
         var entries = split(infield.val())
         // Rename and empty the input so it won't be post:ed
@@ -89,37 +131,10 @@ jQuery.fn.makeTracUserSearch = function(method, options) {
         infield.parent().append(entry).append(boxHolder)
         entry.data('updateBoxes')()
         infield.autocomplete({
-          source: function(request, response) {
-            var matches = []
-            $.each(project_users, function(groupName) {
-              $.each(project_users[groupName], function(i, user) {
-                var s = user.sid.toLowerCase() + user.email.toLowerCase() + user.name.toLowerCase()
-                if (s.indexOf(request.term.toLowerCase()) != -1) {
-                  var label = user.name || user.sid
-                  if (user.email) {
-                    label += $.format(' <$1>', user.email)
-                  }
-                  matches.push({label: label, value: user.sid})
-                }
-              })
-            })
-            response(matches)
-          },
-          search: function() {
-            // custom minLength
-            var term = this.value
-            if (term.length < 3) {
-              return false
-            }
-          },
-          focus: function() {
-            // prevent value inserted on focus
-            return false
-          },
-          select: function(event, ui) {
-            entry.data('addEntry')(ui.item.value)
-            return false
-          }
+          source: options.source,
+          search: options.search,
+          focus: options.focus,
+          select: options.select,
         })
       })
       return infield
