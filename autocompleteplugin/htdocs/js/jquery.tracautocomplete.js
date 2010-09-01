@@ -88,7 +88,6 @@ jQuery.fn.makeTracUserSearch = function(method, options) {
         infield.after(
           $('<button>').attr(options.button.attr)
                        .text(options.button.text)
-                       .button()
                        .click(function(e) {
                          $('#' + id).data('addEntry')(infield.val())
                          return false
