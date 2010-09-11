@@ -212,7 +212,7 @@ class AutoCompleteSystem(Component):
         add_script_data(req, {'project_users': self._all_project_users()})
         js = ''
         for selector, method_, options in inputs:
-            js += '$("%s").makeTracUserSearch("%s"' % (selector, method_ or 'select')
+            js += '$("%s").makeAutocompleteSearch("%s"' % (selector, method_ or 'select')
             if options:
                 if not isinstance(options, basestring):
                     js += ', %s' % to_json(options)

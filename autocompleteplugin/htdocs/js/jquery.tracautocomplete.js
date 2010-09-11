@@ -29,7 +29,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ----------------------------------------------------------------------------
 */
-jQuery.fn.makeTracUserSearch = function(method, options) {
+jQuery.fn.makeAutocompleteSearch = function(method, options) {
   method = method || 'select'
   if (method == 'text') {
     return this.each(function(){
@@ -237,7 +237,7 @@ jQuery.fn.makeTracUserSearch = function(method, options) {
         cancel.click(function() {
           cancel.remove();
           searchnote.remove();
-          inputfield.makeTracUserSearch();
+          inputfield.makeAutocompleteSearch();
         });
         inputfield.keydown(function(e) {
           if (e.keyCode == 27) {
