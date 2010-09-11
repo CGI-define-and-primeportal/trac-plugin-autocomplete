@@ -217,7 +217,7 @@ class AutoCompleteSystem(Component):
                 if not isinstance(options, basestring):
                     js += ', %s' % to_json(options)
                 else:
-                    js += ', "%s"' % options
+                    js += ', %s' % options
             js += ')\n'
                 
         stream = stream | Transformer('//head').append(tag.script("""
