@@ -34,6 +34,7 @@ from trac.config import BoolOption, ListOption
 from trac.web import IRequestFilter
 from trac.wiki import parse_args
 from trac.web.chrome import ITemplateProvider, add_stylesheet, add_script, add_script_data
+from trac.ticket.api import ITicketChangeListener
 from pkg_resources import resource_filename
 from trac.web.api import ITemplateStreamFilter, IRequestHandler
 from genshi.builder import tag
@@ -44,7 +45,9 @@ from api import IAutoCompleteProvider, IAutoCompleteUser
 from trac.core import ExtensionPoint
 from trac.perm import PermissionSystem
 from trac.web.session import DetachedSession
+from trac.cache import cached
 import itertools
+import re
 
 try:
     from simplifiedpermissionsadminplugin import SimplifiedPermissions
@@ -54,7 +57,7 @@ except ImportError, e:
 class AutoCompleteForTickets(Component):
     """Enable auto completing / searchable user lists for ticket
     pages."""
-    implements(IAutoCompleteUser)
+    implements(IAutoCompleteUser, ITicketChangeListener)
 
     autocomplete_on_tickets = BoolOption('autocomplete', 'tickets', True,
                                          """Enable to provide
@@ -64,13 +67,40 @@ class AutoCompleteForTickets(Component):
 
     # IAutoCompleteUser
     def get_templates(self):
-                                # turn off autocomplete and just use the "boxes"
-                                ('#field-keywords', 'text', '{source: $.noop}')],
-                "admin_components.html": [("input[name='owner']", 'select', {})]}
         return {"ticket.html": [("#field-owner", 'select'),
                                 ("#field-reporter", 'select'),
                                 ("#action_reassign_reassign_owner", 'select'),
                                 ('#field-cc', 'text'),
+                                ('#field-keywords', 'text', '{source: %s}' % to_json(
+                        self._current_keywords).encode('utf8'))],
+                "admin_components.html": [("input[name='owner']", 'select')]}
+
+    # ITicketChangeListener
+    def ticket_created(self, ticket):
+        if ticket['keywords']:
+            del self._current_keywords
+
+    def ticket_changed(self, ticket, comment, author, old_values):
+        if "keywords" in old_values:
+            del self._current_keywords
+
+    def ticket_deleted(self, ticket):
+        if ticket['keywords']:
+            del self._current_keywords
+
+    @cached
+    def _current_keywords(self, db):
+        # TODO: should we filter this based on permissions of the ticket
+        # each keyword was found in?!
+        self.log.debug("Running query for current keywords")
+        cursor = db.cursor()
+        all_keywords = set()
+        cursor.execute("SELECT keywords FROM ticket WHERE status != 'closed'")
+        for keywords, in cursor:
+            # this expression comes from _query_link_words() in trac.ticket.web_ui
+            for keyword in re.split(r'(\s*(?:\s|[,;])\s*)', keywords):
+                all_keywords.add(keyword)
+        return list(all_keywords)
 
 class AutoCompleteBasedOnPermissions(Component):
     """Enable auto completing / searchable user lists to search for
