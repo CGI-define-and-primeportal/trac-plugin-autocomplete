@@ -64,13 +64,13 @@ class AutoCompleteForTickets(Component):
 
     # IAutoCompleteUser
     def get_templates(self):
-        return {"ticket.html": [("#field-owner", 'select', {}),
-                                ("#field-reporter", 'select', {}),
-                                ("#action_reassign_reassign_owner", 'select', {}),
-                                ('#field-cc', 'text', {}),
                                 # turn off autocomplete and just use the "boxes"
                                 ('#field-keywords', 'text', '{source: $.noop}')],
                 "admin_components.html": [("input[name='owner']", 'select', {})]}
+        return {"ticket.html": [("#field-owner", 'select'),
+                                ("#field-reporter", 'select'),
+                                ("#action_reassign_reassign_owner", 'select'),
+                                ('#field-cc', 'text'),
 
 class AutoCompleteBasedOnPermissions(Component):
     """Enable auto completing / searchable user lists to search for
@@ -211,7 +211,12 @@ class AutoCompleteSystem(Component):
         # we could put this into some other URL which the browser could cache?
         add_script_data(req, {'project_users': self._all_project_users()})
         js = ''
-        for selector, method_, options in inputs:
+        for input_ in inputs:
+            if len(input_) == 3:
+                selector, method_, options = input_
+            else:
+                selector, method_ = input_
+                options = "{}"
             js += '$("%s").makeAutocompleteSearch("%s"' % (selector, method_ or 'select')
             if options:
                 if not isinstance(options, basestring):

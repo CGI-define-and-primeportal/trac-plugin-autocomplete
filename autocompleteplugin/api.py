@@ -57,5 +57,8 @@ class IAutoCompleteUser(Interface):
 
     def get_templates():
         """Return a dictionary like:
-        {'ticket.html': [('#field-owner','select', {'option_name','option value'}),...]}
+        {'ticket.html': [('#field-owner','select'),
+                         ('#field-owner','text', 'source: $.noop'}),
+                         ...
+                         ]}
         """
