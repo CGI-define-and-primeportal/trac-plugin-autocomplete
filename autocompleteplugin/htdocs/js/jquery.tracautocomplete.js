@@ -30,10 +30,10 @@
 # ----------------------------------------------------------------------------
 */
 jQuery.fn.makeAutocompleteSearch = function(method, options) {
-  method = method || 'select'
+  method = method || 'select';
   if (method == 'text') {
     return this.each(function(){
-        options = $.extend({ 
+        options = $.extend({
                             // Default option values
                             // Button with label and attributes
                             button: {text:'Add', attr:{}},
@@ -41,102 +41,102 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
                             delimiter: /,\s*/,
                             // Autocomplete source
                             source: function(request, response) {
-                              var matches = []
+                              var matches = [];
                               $.each(project_users, function(groupName) {
                                 $.each(project_users[groupName], function(i, user) {
-                                  var s = user.sid.toLowerCase() + user.email.toLowerCase() + user.name.toLowerCase()
+                                  var s = user.sid.toLowerCase() + user.email.toLowerCase() + user.name.toLowerCase();
                                   if (s.indexOf(request.term.toLowerCase()) != -1) {
-                                    var label = user.name || user.sid
+                                    var label = user.name || user.sid;
                                     if (user.email) {
-                                      label += $.format(' <$1>', user.email)
+                                      label += $.format(' <$1>', user.email);
                                     }
-                                    matches.push({label: label, value: user.sid})
+                                    matches.push({label: label, value: user.sid});
                                   }
-                                })
-                              })
-                              response(matches)
+                                });
+                              });
+                              response(matches);
                             },
                             // Autocomplete search
                             search: function() {
                               // custom minLength
-                              var term = this.value
+                              var term = this.value;
                               if (term.length < 3) {
-                                return false
+                                return false;
                               }
                             },
                             // Autocomplete focus
                             focus: function() {
                               // prevent value inserted on focus
-                              return false
+                              return false;
                             },
                             // Autocomplete select
                             select: function(event, ui) {
-                              entry.data('addEntry')(ui.item.value)
-                              return false
+                              entry.data('addEntry')(ui.item.value);
+                              return false;
                             }
                            },
-                           options)
-        var infield = $(this)
-        var id = infield.attr('id')
-        var name = infield.attr('name')
+                           options);
+        var infield = $(this);
+        var id = infield.attr('id');
+        var name = infield.attr('name');
         function split(val) {
-          return $.grep(val.split(options.delimiter), function(i) { return i && true })
+          return $.grep(val.split(options.delimiter), function(i) { return i && true });
         }
-        var entries = split(infield.val())
+        var entries = split(infield.val());
         // Rename and empty the input so it won't be post:ed
-        infield.attr('id', id + '-input').attr('name', '').val('')
+        infield.attr('id', id + '-input').attr('name', '').val('');
         infield.after(
           $('<button>').attr(options.button.attr)
                        .text(options.button.text)
                        .click(function(e) {
-                         $('#' + id).data('addEntry')(infield.val())
-                         return false
+                         $('#' + id).data('addEntry')(infield.val());
+                         return false;
                        })
-        )
+        );
         // Create a hidden input with the value
-        var entry = $('<input type="hidden">').attr('id', id).attr('name', name).val(entries.join(', '))
+        var entry = $('<input type="hidden">').attr('id', id).attr('name', name).val(entries.join(', '));
         // Holder for the removal buttons
-        var boxHolder = $('<div>').addClass(id + '-buttons')
+        var boxHolder = $('<div>').addClass(id + '-buttons');
         entry.data('updateBoxes', function() {
-          boxHolder.empty()
+          boxHolder.empty();
           $.each(entries, function(idx, val) {
             boxHolder.append(
               $('<button>').text(val)
-            )
-          })
+            );
+          });
           $('.' + id + '-buttons button')
               .attr('title', 'Click to remove')
               .button()
               .css('float','left').css('margin','2px')
-              .click(function(e) { 
-                entry.data('removeEntry')($(this).text())
-                return false 
-              })
-        })
+              .click(function(e) {
+                entry.data('removeEntry')($(this).text());
+                return false;
+              });
+        });
         entry.data('addEntry', function(val) {
           if (val && $.inArray(val, entries) == -1) {
             // Don't add dups
-            entries.push(val)
-            infield.val('')
-            entry.val(entries.join(', '))
-            entry.data('updateBoxes')()
+            entries.push(val);
+            infield.val('');
+            entry.val(entries.join(', '));
+            entry.data('updateBoxes')();
           }
-        })
+        });
         entry.data('removeEntry', function(val) {
-          entries = $.grep(entries, function(e, i) { return e != val })
-          entry.val(entries.join(', '))
-          entry.data('updateBoxes')()
-        })
-        infield.parent().append(entry).append(boxHolder)
-        entry.data('updateBoxes')()
+          entries = $.grep(entries, function(e, i) { return e != val });
+          entry.val(entries.join(', '));
+          entry.data('updateBoxes')();
+        });
+        infield.parent().append(entry).append(boxHolder);
+        entry.data('updateBoxes')();
         infield.autocomplete({
           source: options.source,
           search: options.search,
           focus: options.focus,
-          select: options.select,
-        })
-      })
-      return infield
+          select: options.select
+        });
+      });
+      return infield;
   } else {
     // Handle 'select' case (default)
     return this.each(function(){
@@ -152,11 +152,11 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
               // Map the response to the autocomplete dropdown
               response($.map(data, function(row) {
                 return {data: row, value: row.sid,
-                  label: $.format('$1 <$2>', row.name, row.email)}
-              }))
+                  label: $.format('$1 <$2>', row.name, row.email)};
+              }));
             }
-          })
-        },
+          });
+        }
       }, options);
 
       var infield = this;
@@ -229,7 +229,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         if (url == '') {
           searchnote = $("<div class='searchnote'>").text("Manual entry...");
         } else {
-          settings.url = url
+          settings.url = url;
           inputfield.autocomplete(settings);
           searchnote = $("<div class='searchnote'>").text("Searching " + searchname);
         }
