@@ -63,6 +63,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
                               if (term.length < 3) {
                                 return false;
                               }
+                              return true;
                             },
                             // Autocomplete focus
                             focus: function() {
