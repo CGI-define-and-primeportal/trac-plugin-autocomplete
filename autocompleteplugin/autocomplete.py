@@ -97,9 +97,10 @@ class AutoCompleteForTickets(Component):
         all_keywords = set()
         cursor.execute("SELECT keywords FROM ticket WHERE status != 'closed'")
         for keywords, in cursor:
-            # this expression comes from _query_link_words() in trac.ticket.web_ui
-            for keyword in re.split(r'(\s*(?:\s|[,;])\s*)', keywords):
-                all_keywords.add(keyword)
+            if keywords:
+                # this expression comes from _query_link_words() in trac.ticket.web_ui
+                for keyword in re.split(r'(\s*(?:\s|[,;])\s*)', keywords):
+                    all_keywords.add(keyword)
         return list(all_keywords)
 
 class AutoCompleteBasedOnPermissions(Component):
