@@ -66,7 +66,7 @@ class AutoCompleteForAuthz(Component):
 
     # IAutoCompleteUser
     def get_templates(self):
-        return {"admin_authz.html": [("select[name='subject']", 'select')]}
+        return {"admin_authz.html": [("#addpathmember select[name='subject']", 'select')]}
 
 class AutoCompleteForTickets(Component):
     """Enable auto completing / searchable user lists for ticket
