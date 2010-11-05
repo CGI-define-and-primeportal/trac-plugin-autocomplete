@@ -54,6 +54,21 @@ try:
 except ImportError, e:
     SimplifiedPermissions = None
 
+class AutoCompleteForDiscussions(Component):
+    """Enable auto completing / searchable user lists for forum subscribers."""
+    implements(IAutoCompleteUser)
+
+    autocomplete_on_tickets = BoolOption('autocomplete', 'discussions', True,
+                                         """Enable to provide
+                                         autocomplete/search for user
+                                         related fields on discussion
+                                         pages""")
+
+    # IAutoCompleteUser
+    def get_templates(self):
+        return {"topic-list.html": [("input[name=subscribers]", 'text', '{delimiter: / /}')],
+                "message-list.html": [("input[name=subscribers]", 'text', '{delimiter: / /}')]}
+
 class AutoCompleteForTickets(Component):
     """Enable auto completing / searchable user lists for ticket
     pages."""
