@@ -66,8 +66,10 @@ class AutoCompleteForDiscussions(Component):
 
     # IAutoCompleteUser
     def get_templates(self):
-        return {"topic-list.html": [("input[name=subscribers]", 'text', '{delimiter: / /}')],
-                "message-list.html": [("input[name=subscribers]", 'text', '{delimiter: / /}')]}
+        return {"forum-add.html": [("input[name=subscribers]", 'text', '{delimiter: /[, ]/}')],
+                "admin-forum-list.html": [("input[name=subscribers]", 'text', '{delimiter: /[, ]/}')],
+                "topic-list.html": [("input[name=subscribers]", 'text', '{delimiter: /[, ]/}')],
+                "message-list.html": [("input[name=subscribers]", 'text', '{delimiter: /[, ]/}')]}
 
 class AutoCompleteForTickets(Component):
     """Enable auto completing / searchable user lists for ticket
