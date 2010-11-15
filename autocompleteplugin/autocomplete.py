@@ -71,6 +71,20 @@ class AutoCompleteForDiscussions(Component):
                 "topic-list.html": [("input[name=subscribers]", 'text', '{delimiter: /[, ]/}')],
                 "message-list.html": [("input[name=subscribers]", 'text', '{delimiter: /[, ]/}')]}
 
+class AutoCompleteForMailinglist(Component):
+    """Enable auto completing / searchable user lists for mailinglists pages."""
+    implements(IAutoCompleteUser)
+
+    autocomplete_on_tickets = BoolOption('autocomplete', 'mailinglists', True,
+                                         """Enable to provide
+                                         autocomplete/search for user
+                                         related fields on mailinglist
+                                         pages""")
+
+    # IAutoCompleteUser
+    def get_templates(self):
+        return {"mailinglist_admin.html": [("input[name=username]", 'select')]}
+
 class AutoCompleteForTickets(Component):
     """Enable auto completing / searchable user lists for ticket
     pages."""
