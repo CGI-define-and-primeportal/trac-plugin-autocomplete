@@ -68,6 +68,20 @@ class AutoCompleteForMailinglist(Component):
     def get_templates(self):
         return {"mailinglist_admin.html": [("input[name=username]", 'select')]}
 
+class AutoCompleteForAuthz(Component):
+    """Enable auto completing / searchable user lists for authz admin pages"""
+    implements(IAutoCompleteUser)
+
+    autocomplete_on_tickets = BoolOption('autocomplete', 'authz', True,
+                                         """Enable to provide
+                                         autocomplete/search for user
+                                         related fields on authz admin
+                                         pages""")
+
+    # IAutoCompleteUser
+    def get_templates(self):
+        return {"admin_authz.html": [("#addpathmember select[name='subject']", 'select')]}
+
 class AutoCompleteForTickets(Component):
     """Enable auto completing / searchable user lists for ticket
     pages."""
