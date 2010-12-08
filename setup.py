@@ -1,5 +1,5 @@
 # Copyright (c) 2010, Logica
-# 
+#
 # All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without
@@ -25,6 +25,23 @@
 # LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+#
+#
+# Except parent.png and loading.gif, which are:
+# 
+# 
+# Copyright (C) 2003-2009 Edgewall Software
+# All rights reserved.
+#
+# This software is licensed as described in the file COPYING-images, which
+# you should have received as part of this distribution. The terms
+# are also available at http://trac.edgewall.org/wiki/TracLicense.
+#
+# This software consists of voluntary contributions made by many
+# individuals. For the exact contribution history, see the revision
+# history and logs, available at http://trac.edgewall.org/log/.
+#
 # ----------------------------------------------------------------------------
 
 from setuptools import find_packages, setup

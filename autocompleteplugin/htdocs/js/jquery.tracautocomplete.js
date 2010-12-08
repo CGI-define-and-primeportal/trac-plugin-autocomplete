@@ -238,7 +238,8 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
           inputfield.autocomplete(settings);
           searchnote = $("<div class='searchnote'>").text("Searching " + searchname);
         }
-        var cancel = $('<img class="cancelsearch" alt="cancel" title="Cancel Search" src="/chrome/common/parent.png"/>');
+        var cancel = $('<img class="cancelsearch" alt="cancel" title="Cancel Search"/>');
+        cancel.attr('src',autocomplete_cancel_image_url);
         cancel.click(function() {
           cancel.remove();
           searchnote.remove();
