@@ -175,6 +175,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         selectfield.attr('style','width: ' + width + 'px');
       }
       var currentvalue = $(infield).val();
+      selectfield.attr('disabled',$(infield).attr('disabled'));
       $(infield).replaceWith(selectfield);
       var optgroup;
       var option;
