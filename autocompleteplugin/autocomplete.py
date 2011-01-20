@@ -98,6 +98,7 @@ class AutoCompleteForTickets(Component):
         return {"ticket.html": [("#field-owner", 'select'),
                                 ("#field-reporter", 'select'),
                                 ("#action_reassign_reassign_owner", 'select'),
+                                ("#action_btn_fixed_select", 'select'),                                
                                 ("#field-qualityassurancecontact", 'select'),                                
                                 ('#field-cc', 'text'),
                                 ('#field-keywords', 'text', '{source: %s}' % to_json(
