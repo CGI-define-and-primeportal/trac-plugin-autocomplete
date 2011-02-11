@@ -108,7 +108,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
           });
           $('.' + id + '-buttons button')
               .attr('title', 'Click to remove')
-              .button()
+//              .button()
               .css('float','left').css('margin','2px')
               .click(function(e) {
                 entry.data('removeEntry')($(this).text());
