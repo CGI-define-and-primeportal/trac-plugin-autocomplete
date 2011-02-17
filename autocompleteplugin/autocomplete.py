@@ -110,9 +110,9 @@ class AutoCompleteForTickets(Component):
                                 ('#field-keywords', 'text', '{source: %s}' % to_json(
                         self._current_keywords).encode('utf8'))],
                 # These are for fields that are pre-loaded using a stored query for instance
-                "query.html": [('input[name$=_owner]', 'select'),
-                               ('input[name$=_reporter]', 'select'),
-                               ('input[name$=_qualityassurancecontact]', 'select')],
+                "query.html": [('#filters input[name$=_owner]', 'select'),
+                               ('#filters input[name$=_reporter]', 'select'),
+                               ('#filters input[name$=_qualityassurancecontact]', 'select')],
                 "admin_components.html": [("input[name='owner']", 'select')]}
 
     # ITicketChangeListener
