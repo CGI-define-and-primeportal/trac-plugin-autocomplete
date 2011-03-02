@@ -38,7 +38,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
           // Button with label and attributes
           button: {text:'Add', attr:{}},
           // Delimeter expected
-          delimiter: /,\s*/,
+          delimiter: /\s*(?:\s|[,;])\s*/,
           // Autocomplete source
           source: function(request, response) {
             var matches = [];
@@ -60,7 +60,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
           search: function() {
             // custom minLength
             var term = this.value;
-            if (term.length < 3) {
+            if (term.length < 2) {
               return false;
             }
             return true;
@@ -97,6 +97,12 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
                          return false;
                        })
         );
+        infield.keyup(function(e) {
+          // Add keyword on enter-key
+          if (e.which == 13) {
+            $('#' + id).data('addEntry')(infield.val());
+          }
+        })
         // Create a hidden input with the value
         var entry = $('<input type="hidden">').attr('id', id).attr('name', name).val(entries.join(', '));
         // Holder for the removal buttons
