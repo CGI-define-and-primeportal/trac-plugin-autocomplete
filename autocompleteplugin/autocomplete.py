@@ -86,6 +86,20 @@ class AutoCompleteForAuthz(Component):
             return {}
         return {"admin_authz.html": [("#addpathmember select[name='subject']", 'select')]}
 
+class AutoCompleteForTimeline(Component):
+    """Enable auto completing / searchable user lists for authors on timeline page"""
+    implements(IAutoCompleteUser)
+
+    autocomplete_on_authz = BoolOption('autocomplete', 'authors', True,
+                                       """Enable to provide
+                                       autocomplete/searchable user lists for authors on timeline page""")
+
+    # IAutoCompleteUser
+    def get_templates(self):
+        if not self.autocomplete_on_authz:
+            return {}
+        return {"timeline.html": [("input[name='authors']", 'text')]}
+
 class AutoCompleteForTickets(Component):
     """Enable auto completing / searchable user lists for ticket
     pages."""
