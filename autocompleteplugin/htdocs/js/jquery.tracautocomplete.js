@@ -268,3 +268,6 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
   }
 };
 
+/* Local Variables:   */
+/* js-indent-level: 2 */
+/* End:               */
