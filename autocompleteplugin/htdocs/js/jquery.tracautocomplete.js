@@ -211,6 +211,8 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
           // http://timplode.com/wp-content/uploads/2009/07/ie_test.html :-(
           option = document.createElement('OPTION');
           option.value = project_users[n][u].sid;
+          if (option.value == currentvalue)
+            option.selected = true;
           if (project_users[n][u].email)
             option.appendChild(document.createTextNode(project_users[n][u].name + " <" + project_users[n][u].email + ">"));
           else
