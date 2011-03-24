@@ -225,7 +225,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
       // http://timplode.com/wp-content/uploads/2009/07/ie_test.html :-(
       option = document.createElement('OPTION');
       option.value = "";
-      option.appendChild(document.createTextNode("Type manually..."));
+      option.appendChild(document.createTextNode("Type username..."));
       optgroup.append(option);
 
       selectfield.change(function() {
