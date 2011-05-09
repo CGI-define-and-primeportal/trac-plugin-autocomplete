@@ -86,7 +86,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         }
         var entries = split(infield.val());
         // Rename and empty the input so it won't be post:ed
-        infield.attr('id', id + '-input').removeAttr('name').val('');
+        infield.attr({id: id + '-input', name: name +'-input'}).val('');
         // For jquery validator
         infield.addClass('text-autocomplete') // Marker for validate plugin
         infield.after(
