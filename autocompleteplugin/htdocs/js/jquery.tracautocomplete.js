@@ -88,7 +88,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         // Rename and empty the input so it won't be post:ed
         infield.attr({id: id + '-input', name: name +'-input'}).val('');
         // For jquery validator
-        infield.addClass('text-autocomplete') // Marker for validate plugin
+        infield.addClass('text-autocomplete') // Marker for validate plugin (not currently used)
         infield.after(
           $('<button>').attr(options.button.attr)
                        .text(options.button.text)
@@ -105,6 +105,11 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         })
         // Create a hidden input with the value
         var entry = $($.format('<input type="hidden" id="$1" name="$2">', id, name)).val(entries.join(', '));
+        // Move jquery.validate "required" marker to the hidden value field if applicable
+        if (infield.hasClass('required')) {
+          infield.removeClass('required')
+          entry.addClass('required')
+        }
         // Holder for the removal buttons
         var boxHolder = $('<div>').addClass(id + '-buttons');
         entry.data('updateBoxes', function() {
