@@ -84,6 +84,22 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         function split(val) {
           return $.grep(val.split(options.delimiter), function(i) { return i && true });
         }
+        function getRealname(sid){
+        	var label = sid;
+        	$.each(project_users, function(groupName) {
+        		var found = false;
+                $.each(project_users[groupName], function(i, user) {
+                	if (user.sid == sid){
+                		found = true;
+                		label = user.name || user.sid;
+                		return;
+                	}
+                });
+                if (found)
+                	return;
+        	});
+        	return label.replace(" (never logged in)", '')
+        }
         var entries = split(infield.val());
         // Rename and empty the input so it won't be post:ed
         infield.attr({id: id + '-input', name: name +'-input'}).val('');
@@ -116,7 +132,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
           boxHolder.empty();
           $.each(entries, function(idx, val) {
             boxHolder.append(
-              $('<button>').text(val)
+              $('<button>').text(getRealname(val)).attr('name', val)
             );
           });
           $('.' + id + '-buttons button')
@@ -124,7 +140,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
 //              .button()
               .css('float','left').css('margin','2px')
               .click(function(e) {
-                entry.data('removeEntry')($(this).text());
+                entry.data('removeEntry')($(this).attr('name'));
                 return false;
               });
         });
