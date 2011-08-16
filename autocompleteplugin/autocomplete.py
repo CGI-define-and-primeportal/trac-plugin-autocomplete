@@ -203,6 +203,8 @@ class AutoCompleteBasedOnPermissions(Component):
             for group, data in sp.group_memberships().items():
                 for member in data['members']:
                     if q in member.sid:
+                        # if the 'never logged in' text changes, then update
+                        # plugins/open/autocompleteplugin/autocompleteplugin/htdocs/js/jquery.tracautocomplete.js
                         yield {'sid': member.sid,
                                'name': member.get('name',"%s (never logged in)" % member.sid),
                                'email': member.get('email','')}

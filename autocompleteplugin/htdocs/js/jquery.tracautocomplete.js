@@ -98,6 +98,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
                 if (found)
                 	return;
         	});
+                // This string comes from plugins/open/autocompleteplugin/autocompleteplugin/autocomplete.py
         	return label.replace(" (never logged in)", '')
         }
         var entries = split(infield.val());
