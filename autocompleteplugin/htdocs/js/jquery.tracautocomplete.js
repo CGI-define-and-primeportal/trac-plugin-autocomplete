@@ -251,11 +251,23 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
       optgroup.append(option);
 
       selectfield.change(function() {
-        if (selectfield[0].selectedIndex == 0)
+        if (selectfield[0].selectedIndex == 0){
+          if ($("#username")){
+	     $("#username").text('');
+          }
           return;
+        }
         if ((selectfield[0].selectedIndex > username_completers.length) &&
-            (selectfield[0].selectedIndex != selectfield[0].options.length - 1))
+            (selectfield[0].selectedIndex != selectfield[0].options.length - 1)) {
+          if ($("#username")){
+          	$("#username").text("Username:"+$(this).val());
+          	
+          }
           return;
+        }
+        if ($("#username")){
+	      $("#username").text('');
+        }
         var url = selectfield.val();
         var searchname = selectfield.find("option:selected").text();
         var inputfield = $("<input type='text' id='" + id + "' name='" + name + "' class='" + klass + "'/>");
