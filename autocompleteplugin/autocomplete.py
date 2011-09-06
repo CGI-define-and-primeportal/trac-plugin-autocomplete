@@ -130,7 +130,11 @@ class AutoCompleteForTickets(Component):
                               [('#filters input[name$=_owner]', 'select'),
                                ('#filters input[name$=_reporter]', 'select'),
                                ('#filters input[name$=_qualityassurancecontact]', 'select')],
-                "admin_components.html": [("input[name='owner']", 'select')]}
+                "admin_components.html": [("input[name='owner']", 'select')],
+                "hours_timeline.html": action_ctls +
+                              [('#filters input[name$=_owner]', 'select'),
+                               ('#filters input[name$=_reporter]', 'select'),
+                               ('#filters input[name$=_qualityassurancecontact]', 'select')],}
 
     # ITicketChangeListener
     def ticket_created(self, ticket):
