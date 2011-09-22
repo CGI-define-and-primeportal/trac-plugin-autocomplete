@@ -201,9 +201,6 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
       var klass = $(infield).attr('class');
       var width = $(infield).width();
       var selectfield = $("<select id='" + id + "' name='" + name + "' class='" + klass + "'/>");
-      if (width > 0) {
-        selectfield.attr('style','width: ' + width + 'px');
-      }
       var currentvalue = $(infield).val();
       selectfield.attr('disabled',$(infield).attr('disabled'));
       $(infield).replaceWith(selectfield);
