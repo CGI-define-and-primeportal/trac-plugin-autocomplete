@@ -179,6 +179,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
       var settings = $.extend({
         minLength: 3,
         delay: 500,
+        order: ["currentValue", "search", "groups", "manual"],
         source: function(request, response) {
           $.ajax({
             url: settings.url,
@@ -247,6 +248,14 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         return optgroup;
       }
 
+      function groupsOptGroups() {
+        var optgroups = [];
+        for ( n in project_users ) {
+          optgroups.push(groupOptGroup(n).get(0));
+        }
+        return optgroups;
+      }
+
       function manualOptGroup(selectfield) {
         var optgroup = $('<optgroup label="Manual Entry"></optgroup>');
         // http://timplode.com/wp-content/uploads/2009/07/ie_test.html :-(
@@ -258,12 +267,15 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
       }
 
       // Populate the select list
-      selectfield.append(currentValueOptGroup());
-      selectfield.append(searchOptGroup());
-      for ( n in project_users ) {
-        selectfield.append(groupOptGroup(n));
+      var optGroups_fns = {"currentValue": currentValueOptGroup,
+                           "search": searchOptGroup,
+                           "groups": groupsOptGroups,
+                           "manual": manualOptGroup
+                           };
+      for (var i=0; i < settings.order.length; i++) {
+        var fn = optGroups_fns[settings.order[i]];
+        selectfield.append(fn());
       }
-      selectfield.append(manualOptGroup());
 
       selectfield.change(function() {
         if (selectfield[0].selectedIndex == 0){
