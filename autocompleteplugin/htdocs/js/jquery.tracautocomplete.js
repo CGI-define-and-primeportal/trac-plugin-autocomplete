@@ -213,6 +213,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         // http://timplode.com/wp-content/uploads/2009/07/ie_test.html :-(
         option = document.createElement('OPTION');
         option.value = currentvalue;
+        option.className = 'currentValue';
         option.appendChild(document.createTextNode(currentvalue));
         optgroup.append(option);
         return optgroup;
@@ -224,6 +225,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
           // http://timplode.com/wp-content/uploads/2009/07/ie_test.html :-(
           option = document.createElement('OPTION');
           option.value = username_completers[n].url;
+          option.className = 'search';
           option.appendChild(document.createTextNode(username_completers[n].name));
           optgroup.append(option);
         };
@@ -237,6 +239,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
           // http://timplode.com/wp-content/uploads/2009/07/ie_test.html :-(
           option = document.createElement('OPTION');
           option.value = project_users[n][u].sid;
+          option.className = 'group';
           if (option.value == currentvalue)
             option.selected = true;
           if (project_users[n][u].email)
@@ -261,6 +264,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         // http://timplode.com/wp-content/uploads/2009/07/ie_test.html :-(
         option = document.createElement('OPTION');
         option.value = "";
+        option.className = 'manual';
         option.appendChild(document.createTextNode("Type username..."));
         optgroup.append(option);
         return optgroup;
@@ -278,18 +282,14 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
       }
 
       selectfield.change(function() {
-        if (selectfield[0].selectedIndex == 0){
+        var selected = selectfield.find('option:selected');
+        if (selected.hasClass('currentValue')){
           if ($("#username")){
 	     $("#username").text('');
-        // Assume first optgroup is "Current Value", hence item 0 is current value
           }
           return;
         }
-        if ((selectfield[0].selectedIndex > username_completers.length) &&
-            (selectfield[0].selectedIndex != selectfield[0].options.length - 1)) {
-        // Assume second optgroup is search and last optgroup is manual entry
-        // hence items from index username_completers..end-1 are
-        // actual usernames
+        if (selected.hasClass('group')) {
           if ($("#username")){
           	$("#username").text("Username:"+$(this).val());
           	
@@ -302,7 +302,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         }
 
         var url = selectfield.val();
-        var searchname = selectfield.find("option:selected").text();
+        var searchname = selected.text();
         var inputfield = $("<input type='text' id='" + id + "' name='" + name + "' class='" + klass + "'/>");
         if (size > 0) {
           inputfield[0].size = size;
