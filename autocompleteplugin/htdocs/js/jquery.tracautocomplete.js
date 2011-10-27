@@ -322,7 +322,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         cancel.click(function() {
           cancel.remove();
           searchnote.remove();
-          inputfield.makeAutocompleteSearch();
+          inputfield.makeAutocompleteSearch(method, settings);
         });
 
         inputfield.keydown(function(e) {
