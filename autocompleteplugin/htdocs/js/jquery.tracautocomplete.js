@@ -204,28 +204,34 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
       var currentvalue = $(infield).val();
       selectfield.attr('disabled',$(infield).attr('disabled'));
       $(infield).replaceWith(selectfield);
-      var optgroup;
       var option;
       var n;
-      optgroup = $('<optgroup label="Current Value"></optgroup>');
-      selectfield.append(optgroup);
-      // http://timplode.com/wp-content/uploads/2009/07/ie_test.html :-(
-      option = document.createElement('OPTION');
-      option.value = currentvalue;
-      option.appendChild(document.createTextNode(currentvalue));
-      optgroup.append(option);
-      optgroup = $('<optgroup label="Search"></optgroup>');
-      selectfield.append(optgroup);
-      for ( n in username_completers ) {
+
+      function currentValueOptGroup() {
+        var optgroup = $('<optgroup label="Current Value"></optgroup>');
         // http://timplode.com/wp-content/uploads/2009/07/ie_test.html :-(
         option = document.createElement('OPTION');
-        option.value = username_completers[n].url;
-        option.appendChild(document.createTextNode(username_completers[n].name));
+        option.value = currentvalue;
+        option.appendChild(document.createTextNode(currentvalue));
         optgroup.append(option);
-      };
-      for ( n in project_users ) {
-        optgroup = $('<optgroup label="' + n + '"></optgroup>');
-        selectfield.append(optgroup);
+        return optgroup;
+      }
+
+      function searchOptGroup() {
+        var optgroup = $('<optgroup label="Search"></optgroup>');
+        for ( n in username_completers ) {
+          // http://timplode.com/wp-content/uploads/2009/07/ie_test.html :-(
+          option = document.createElement('OPTION');
+          option.value = username_completers[n].url;
+          option.appendChild(document.createTextNode(username_completers[n].name));
+          optgroup.append(option);
+        };
+        return optgroup;
+      }
+
+      // Create an <optgroup> for the named group of users `n`
+      function groupOptGroup(n) {
+        var optgroup = $('<optgroup label="' + n + '"></optgroup>');
         for ( var u in project_users[n] ) {
           // http://timplode.com/wp-content/uploads/2009/07/ie_test.html :-(
           option = document.createElement('OPTION');
@@ -238,14 +244,26 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
             option.appendChild(document.createTextNode(project_users[n][u].name));
           optgroup.append(option);
         };
-      };
-      optgroup = $('<optgroup label="Manual Entry"></optgroup>');
-      selectfield.append(optgroup);
-      // http://timplode.com/wp-content/uploads/2009/07/ie_test.html :-(
-      option = document.createElement('OPTION');
-      option.value = "";
-      option.appendChild(document.createTextNode("Type username..."));
-      optgroup.append(option);
+        return optgroup;
+      }
+
+      function manualOptGroup(selectfield) {
+        var optgroup = $('<optgroup label="Manual Entry"></optgroup>');
+        // http://timplode.com/wp-content/uploads/2009/07/ie_test.html :-(
+        option = document.createElement('OPTION');
+        option.value = "";
+        option.appendChild(document.createTextNode("Type username..."));
+        optgroup.append(option);
+        return optgroup;
+      }
+
+      // Populate the select list
+      selectfield.append(currentValueOptGroup());
+      selectfield.append(searchOptGroup());
+      for ( n in project_users ) {
+        selectfield.append(groupOptGroup(n));
+      }
+      selectfield.append(manualOptGroup());
 
       selectfield.change(function() {
         if (selectfield[0].selectedIndex == 0){
