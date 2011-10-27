@@ -281,20 +281,26 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         if (selectfield[0].selectedIndex == 0){
           if ($("#username")){
 	     $("#username").text('');
+        // Assume first optgroup is "Current Value", hence item 0 is current value
           }
           return;
         }
         if ((selectfield[0].selectedIndex > username_completers.length) &&
             (selectfield[0].selectedIndex != selectfield[0].options.length - 1)) {
+        // Assume second optgroup is search and last optgroup is manual entry
+        // hence items from index username_completers..end-1 are
+        // actual usernames
           if ($("#username")){
           	$("#username").text("Username:"+$(this).val());
           	
           }
           return;
         }
+
         if ($("#username")){
 	      $("#username").text('');
         }
+
         var url = selectfield.val();
         var searchname = selectfield.find("option:selected").text();
         var inputfield = $("<input type='text' id='" + id + "' name='" + name + "' class='" + klass + "'/>");
@@ -310,6 +316,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
           inputfield.autocomplete(settings);
           searchnote = $("<div class='searchnote'>").text("Searching " + searchname);
         }
+
         var cancel = $('<img class="cancelsearch" alt="cancel" title="Cancel Search"/>');
         cancel.attr('src',autocomplete_cancel_image_url);
         cancel.click(function() {
@@ -317,6 +324,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
           searchnote.remove();
           inputfield.makeAutocompleteSearch();
         });
+
         inputfield.keydown(function(e) {
           if (e.keyCode == 27) {
             cancel.click();
