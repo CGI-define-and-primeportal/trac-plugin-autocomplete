@@ -102,6 +102,9 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
                 // This string comes from plugins/open/autocompleteplugin/autocompleteplugin/autocomplete.py
         	return label.replace(" (never logged in)", '')
         }
+        function pullinfieldVal() {
+          $('#' + id).data('addEntry')(infield.val());
+        }
         var entries = split(infield.val());
         // Rename and empty the input so it won't be post:ed
         infield.attr({id: id + '-input', name: name +'-input'}).val('');
@@ -112,7 +115,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
             $('<button>').attr(options.button.attr)
                          .text(options.button.text)
                          .click(function(e) {
-                            $('#' + id).data('addEntry')(infield.val());
+                            pullinfieldVal();
                             return false;
                           })
           );
@@ -120,7 +123,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         infield.keyup(function(e) {
           // Add keyword on enter-key
           if (e.which == 13) {
-            $('#' + id).data('addEntry')(infield.val());
+            pullinfieldVal();
           }
         })
         // Create a hidden input with the value
@@ -173,6 +176,10 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
           focus: options.focus,
           select: options.select
         });
+        // Handle values left over when the user leaves the control, or submits
+        // the form. This covers the case where text is pasted into the control
+        // and the autocomplate mechanism doesn't run
+        infield.blur(pullinfieldVal);
       });
       return infield;
   } else {
