@@ -37,6 +37,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
           // Default option values
           // Button with label and attributes
           button: {text:'Add', attr:{'class':'sprite-button sprite-button40'}},
+          show_button: true,
           // Delimeter expected
           delimiter: /\s*(?:\s|[,;])\s*/,
           // Autocomplete source
@@ -106,14 +107,16 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         infield.attr({id: id + '-input', name: name +'-input'}).val('');
         // For jquery validator
         infield.addClass('text-autocomplete') // Marker for validate plugin (not currently used)
-        infield.after(
-          $('<button>').attr(options.button.attr)
-                       .text(options.button.text)
-                       .click(function(e) {
-                         $('#' + id).data('addEntry')(infield.val());
-                         return false;
-                       })
-        );
+        if (options.show_button) {
+          infield.after(
+            $('<button>').attr(options.button.attr)
+                         .text(options.button.text)
+                         .click(function(e) {
+                            $('#' + id).data('addEntry')(infield.val());
+                            return false;
+                          })
+          );
+        }
         infield.keyup(function(e) {
           // Add keyword on enter-key
           if (e.which == 13) {
