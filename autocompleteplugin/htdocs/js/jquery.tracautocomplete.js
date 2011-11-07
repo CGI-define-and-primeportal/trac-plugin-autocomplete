@@ -320,7 +320,8 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         selectfield.replaceWith(inputfield);
         var searchnote;
         if (url == '') {
-          searchnote = $("<div class='searchnote'>").text("Manual entry...");
+          $(inputfield).valueLabel('domain\\username');
+          searchnote = $("<div class='searchnote'>").html("Manual entry, type <tt>domain\\username</tt>...");
         } else {
           settings.url = url;
           inputfield.autocomplete(settings);
