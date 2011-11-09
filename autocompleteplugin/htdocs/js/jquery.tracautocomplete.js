@@ -320,7 +320,6 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         selectfield.replaceWith(inputfield);
         var searchnote;
         if (url == '') {
-          $(inputfield).valueLabel('domain\\username');
           searchnote = $("<div class='searchnote'>").html("Manual entry, type <tt>domain\\username</tt>...");
         } else {
           settings.url = url;
@@ -333,7 +332,6 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         cancel.click(function() {
           cancel.remove();
           searchnote.remove();
-          inputfield.removeClass('unset');
           inputfield.makeAutocompleteSearch(method, settings);
         });
 
