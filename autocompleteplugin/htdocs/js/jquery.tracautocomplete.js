@@ -333,6 +333,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         cancel.click(function() {
           cancel.remove();
           searchnote.remove();
+          inputfield.removeClass('unset');
           inputfield.makeAutocompleteSearch(method, settings);
         });
 
