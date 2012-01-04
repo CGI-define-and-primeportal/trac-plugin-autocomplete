@@ -48,6 +48,8 @@ from trac.web.session import DetachedSession
 from trac.cache import cached
 import itertools
 import re
+from trac.admin.api import IAdminPanelProvider
+from trac.util.translation import _
 
 try:
     from simplifiedpermissionsadminplugin import SimplifiedPermissions
@@ -265,6 +267,10 @@ class AutoCompleteBasedOnSessions(Component):
 
 class AutoCompleteSystem(Component):
     implements(ITemplateProvider, ITemplateStreamFilter)
+    
+    shown_groups = ListOption('autocomplete', 'shown_groups',
+                               'project_managers,project_viewers,external_developers', doc=
+        """User groups used in auto complete enabled inputs.""")
 
     autocompleters    = ExtensionPoint(IAutoCompleteProvider)
     autocompleteusers = ExtensionPoint(IAutoCompleteUser)
@@ -308,7 +314,13 @@ class AutoCompleteSystem(Component):
         add_script_data(req, {'username_completers': username_completers})
                 
         # we could put this into some other URL which the browser could cache?
-        add_script_data(req, {'project_users': self._all_project_users()})
+        #show users from all groups, shown or not, on the members page
+        if req.path_info.startswith('/admin/access/access_and_groups'):
+            add_script_data(req, {'project_users': self._project_users(all=True)})
+        else:
+            add_script_data(req, {'project_users': self._project_users()})
+        
+        
         js = ''
         for input_ in inputs:
             if len(input_) == 3:
@@ -332,21 +344,22 @@ class AutoCompleteSystem(Component):
         """ % js,type="text/javascript"))
         return stream
     
-    def _all_project_users(self):
+    def _project_users(self, all=False):
         people = {}
         session_users = False
         if SimplifiedPermissions and self.env.is_enabled(SimplifiedPermissions):
             sp = SimplifiedPermissions(self.env)
             for group, data in sp.group_memberships().items():
-                group = group.title().replace("_"," ")
-                if data['domains']:
-                    group = "%s (Plus: %s)" % (group, ", ".join(data['domains']))
-                    session_users = True
-                people[group] = []
-                for member in data['members']:
-                    people[group].append({'sid': member.sid,
-                                          'name': member.get('name',"%s (never logged in)" % member.sid),
-                                          'email': member.get('email','')})
+                if all or group in self.shown_groups:
+                    group = group.title().replace("_"," ")
+                    if data['domains']:
+                        group = "%s (Plus: %s)" % (group, ", ".join(data['domains']))
+                        session_users = True
+                    people[group] = []
+                    for member in data['members']:
+                        people[group].append({'sid': member.sid,
+                                              'name': member.get('name',"%s (never logged in)" % member.sid),
+                                              'email': member.get('email','')})
         else:
             session_users = True
         if session_users:
