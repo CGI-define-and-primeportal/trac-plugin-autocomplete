@@ -119,6 +119,7 @@ class AutoCompleteForTickets(Component):
             return {}
         action_ctls = [("#field-owner", 'select'),
                        ("#field-reporter", 'select'),
+                       # Created by vanilla Trac using default workflow
                        ("#action_reassign_reassign_owner", 'select'),
                        ("#action_btn_fixed_select", 'select'),
                        ]
