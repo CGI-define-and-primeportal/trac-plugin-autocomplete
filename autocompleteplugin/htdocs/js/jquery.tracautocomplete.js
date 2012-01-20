@@ -179,7 +179,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         // Handle values left over when the user leaves the control, or submits
         // the form. This covers the case where text is pasted into the control
         // and the autocomplate mechanism doesn't run
-        infield.blur(pullinfieldVal);
+        // infield.blur(pullinfieldVal);
       });
       return infield;
   } else {
