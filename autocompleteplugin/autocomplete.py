@@ -144,7 +144,7 @@ class AutoCompleteForTickets(Component):
         if ticket['keywords']:
             del self._current_keywords
 
-    def ticket_changed(self, ticket, comment, author, old_values):
+    def ticket_changed(self, ticket, comment, author, old_values, action=None):
         if "keywords" in old_values:
             del self._current_keywords
 
