@@ -260,7 +260,7 @@ class AutoCompleteBasedOnSessions(Component):
 
     def _session_query(self, q, limit=10):
         for user in itertools.islice(self.env.get_known_users(), 0, limit):
-            if use and q.lower() in ''.join(user).lower():
+            if q.lower() in ''.join(user).lower():
                 yield {'sid': user[0],
                        'name': user[1],
                        'email': user[2]}
