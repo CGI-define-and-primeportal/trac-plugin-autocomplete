@@ -259,8 +259,9 @@ class AutoCompleteBasedOnSessions(Component):
             req.write(body)
 
     def _session_query(self, q, limit=10):
+        lower_q = q.lower()
         for user in itertools.islice(self.env.get_known_users(), 0, limit):
-            if q.lower() in ''.join(user).lower():
+            if True in (lower_q in userdetail.lower() for userdetail in user if userdetail):
                 yield {'sid': user[0],
                        'name': user[1],
                        'email': user[2]}
