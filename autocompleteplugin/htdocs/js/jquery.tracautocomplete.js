@@ -197,8 +197,14 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
             success: function(data) {
               // Map the response to the autocomplete dropdown
               response($.map(data, function(row) {
+			  if (row.email){
                 return {data: row, value: row.sid,
                   label: $.format('$1 <$2>', row.name, row.email)};
+				  }
+			  else {
+				return {data: row, value: row.sid,
+                  label: $.format('$1', row.name)};
+			  }
               }));
             }
           });
