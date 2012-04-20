@@ -186,7 +186,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
     // Handle 'select' case (default)
     return this.each(function(){
       // Merge default settings with options
-      var settings = $.extend({
+	  settings = $.extend({
         minLength: 3,
         delay: 500,
         order: ["currentValue", "search", "groups", "manual"],
