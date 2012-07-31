@@ -51,10 +51,8 @@ import re
 from trac.admin.api import IAdminPanelProvider
 from trac.util.translation import _
 
-try:
-    from simplifiedpermissionsadminplugin import SimplifiedPermissions
-except ImportError, e:
-    SimplifiedPermissions = None
+from simplifiedpermissionsadminplugin.simplifiedpermissions import SimplifiedPermissions
+from simplifiedpermissionsadminplugin.api import IGroupMembershipChangeListener   
 
 class AutoCompleteForMailinglist(Component):
     """Enable auto completing / searchable user lists for mailinglists pages."""
@@ -268,7 +266,7 @@ class AutoCompleteBasedOnSessions(Component):
 
 
 class AutoCompleteSystem(Component):
-    implements(ITemplateProvider, ITemplateStreamFilter)
+    implements(ITemplateProvider, ITemplateStreamFilter, IGroupMembershipChangeListener)
     
     shown_groups = ListOption('autocomplete', 'shown_groups',
                                'project_managers,project_viewers,external_developers', doc=
@@ -373,3 +371,20 @@ class AutoCompleteSystem(Component):
 
         return people
         
+    # IGroupMembershipChangeListener methods
+    def user_added(self, username, groupname):
+        pass
+
+    def user_removed(self, username, groupname):
+        pass
+    
+    def group_added(self, groupname):
+        pass
+
+    def group_removed(self, groupname):        
+        set_groups = self.shown_groups       
+        if groupname in self.shown_groups: 
+            set_groups.remove(groupname)
+            self.config.set('autocomplete', 'shown_groups',
+                                               ','.join(set_groups))
+            self.config.save()                               
