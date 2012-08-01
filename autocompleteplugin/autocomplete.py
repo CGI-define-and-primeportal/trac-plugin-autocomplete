@@ -51,7 +51,6 @@ import re
 from trac.admin.api import IAdminPanelProvider
 from trac.util.translation import _
 
-from simplifiedpermissionsadminplugin.simplifiedpermissions import SimplifiedPermissions
 from simplifiedpermissionsadminplugin.api import IGroupMembershipChangeListener   
 
 class AutoCompleteForMailinglist(Component):
@@ -203,6 +202,7 @@ class AutoCompleteBasedOnPermissions(Component):
             req.write(body)
 
     def _users_query(self, q, limit=10):
+        from simplifiedpermissionsadminplugin.simplifiedpermissions import SimplifiedPermissions
         if SimplifiedPermissions and self.env.is_enabled(SimplifiedPermissions):
             sp = SimplifiedPermissions(self.env)
             for group, data in sp.group_memberships().items():
@@ -347,6 +347,7 @@ class AutoCompleteSystem(Component):
     def _project_users(self, all=False):
         people = {}
         session_users = False
+        from simplifiedpermissionsadminplugin.simplifiedpermissions import SimplifiedPermissions
         if SimplifiedPermissions and self.env.is_enabled(SimplifiedPermissions):
             sp = SimplifiedPermissions(self.env)
             for group, data in sp.group_memberships().items():
