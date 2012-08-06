@@ -106,13 +106,12 @@ class AutoCompleteModel(Component):
         
     def add_default_data(self):
         #Add default autocomplete name
-        add_autocomplete(self.env, self._default_autocomplete_name, 
-                         self._default_autocomplete_description)
+        AutoCompleteGroup(self.env).add_autocomplete(self._default_autocomplete_name, 
+                                                     self._default_autocomplete_description)
         #Add default autocomplete names
         for value in self._default_autocomplete_values:
-            add_autocomplete_name(self.env, 
-                                 self._default_autocomplete_name, 
-                                 value)
+            AutoCompleteGroup(self.env).add_autocomplete_name(self._default_autocomplete_name, 
+                                                              value)
             
     def remove_data_from_config(self):
         #Remove shown_groups from config
@@ -123,65 +122,77 @@ class AutoCompleteModel(Component):
     steps = [ [ create_db, add_default_data, remove_data_from_config ] # version 1
             ]
 
-def get_autocomplete_values(env, autocomplete_name):
-    """Returns a list of values for the given autocomplete_name"""
-    db = env.get_db_cnx()
-    cursor = db.cursor()
-    cursor.execute('SELECT value FROM autocomplete_values WHERE autocomplete_name = %s',
-                   (autocomplete_name,))
-    
-    row = None
-    values = []
-    
-    for row in cursor:
-        values.append(row[0])
+class AutoCompleteGroup(object):
+    """Simple class for handling AutoComplete group values"""
 
-    return values
-
-def add_autocomplete(env, autocomplete_name, description=None):
-    """Adds an autocomplete section with description"""
-    db = env.get_db_cnx()
-    cursor = db.cursor()
-    if not description:
-        description = ""
-
-    cursor.execute('''INSERT INTO autocomplete(name, description) VALUES 
-                    (%s, %s)''',(autocomplete_name, description))
+    def __init__(self, env):
+        self.env = env
     
-def add_autocomplete_name(env, autocomplete_name, value):
-    """Adds an autocomplete value related to an autocomplete name"""
-    db = env.get_db_cnx()
-    cursor = db.cursor()
-    
-    relation_exists = check_if_section_name_exists(env, autocomplete_name, value)
-    
-    #Add data only if no relation exists
-    if not relation_exists:
-        cursor.execute('''INSERT INTO autocomplete_values(autocomplete_name, 
-                        value) VALUES (%s, %s)''',(autocomplete_name, value))
+    def get_autocomplete_values(self, autocomplete_name):
+        """Returns a list of values for the given autocomplete_name"""
+        db = self.env.get_db_cnx()
+        cursor = db.cursor()
+        cursor.execute('SELECT value FROM autocomplete_values WHERE autocomplete_name = %s',
+                       (autocomplete_name,))
         
-def remove_autocomplete_name(env, autocomplete_name, value):
-    """Remove an autocomplete value related to an autocomplete name"""
-    db = env.get_db_cnx()
-    cursor = db.cursor()
+        row = None
+        values = []
+        
+        for row in cursor:
+            values.append(row[0])
     
-    relation_exists = check_if_section_name_exists(env, autocomplete_name, value)
+        return values
     
-    #Remove only if relation exists
-    if relation_exists:
-        cursor.execute('''DELETE FROM autocomplete_values WHERE 
-                        autocomplete_name = %s AND value = %s''', 
-                        (autocomplete_name, value))
+    def add_autocomplete(self, autocomplete_name, description=None):
+        """Adds an autocomplete section with description"""
+        db = self.env.get_db_cnx()
+        
+        if not description:
+            description = ""
+        @self.env.with_transaction()
+        def do_save(db):
+            cursor = db.cursor()
+            cursor.execute('''INSERT INTO autocomplete(name, description) VALUES 
+                            (%s, %s)''',(autocomplete_name, description))
+        
+    def add_autocomplete_name(self, autocomplete_name, value):
+        """Adds an autocomplete value related to an autocomplete name"""
+        db = self.env.get_db_cnx()
+        
+        relation_exists = self.check_if_section_name_exists(autocomplete_name, value)
 
-def check_if_section_name_exists(env, autocomplete_name, value):
-    """Checks if autocomplete_name name relation exists"""
-    db = env.get_db_cnx()
-    cursor = db.cursor()
+        @self.env.with_transaction()
+        def do_save(db):
+            cursor = db.cursor()
+            #Add data only if no relation exists
+            if not relation_exists:
+                cursor.execute('''INSERT INTO autocomplete_values(autocomplete_name, 
+                                value) VALUES (%s, %s)''',(autocomplete_name, value))
+            
+    def remove_autocomplete_name(self, autocomplete_name, value):
+        """Remove an autocomplete value related to an autocomplete name"""
+        db = self.env.get_db_cnx()
+        
+        relation_exists = self.check_if_section_name_exists(autocomplete_name, value)
+
+        @self.env.with_transaction()
+        def do_delete(db):
+            #Remove only if relation exists
+            if relation_exists:
+                cursor = db.cursor()
+                cursor.execute('''DELETE FROM autocomplete_values WHERE 
+                                autocomplete_name = %s AND value = %s''', 
+                                (autocomplete_name, value))
     
-    cursor.execute('''SELECT autocomplete_name FROM autocomplete_values WHERE
-                    autocomplete_name = %s AND value = %s''', 
-                    (autocomplete_name, value,))
+    def check_if_section_name_exists(self, autocomplete_name, value):
+        """Checks if autocomplete_name name relation exists"""
+        db = self.env.get_db_cnx()
+        cursor = db.cursor()
+        
+        cursor.execute('''SELECT autocomplete_name FROM autocomplete_values WHERE
+                        autocomplete_name = %s AND value = %s''', 
+                        (autocomplete_name, value,))
     
-    if cursor.fetchone() is None:
-        return False
-    return True
+        if cursor.fetchone() is None:
+            return False
+        return True

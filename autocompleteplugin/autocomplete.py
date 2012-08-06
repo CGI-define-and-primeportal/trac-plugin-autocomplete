@@ -52,9 +52,7 @@ from trac.admin.api import IAdminPanelProvider
 from trac.util.translation import _
 
 from simplifiedpermissionsadminplugin.api import IGroupMembershipChangeListener   
-from autocompleteplugin import model
-from autocompleteplugin.model import get_autocomplete_values,\
-    remove_autocomplete_name
+from autocompleteplugin.model import AutoCompleteGroup
 
 class AutoCompleteForMailinglist(Component):
     """Enable auto completing / searchable user lists for mailinglists pages."""
@@ -348,9 +346,9 @@ class AutoCompleteSystem(Component):
         session_users = False
         from simplifiedpermissionsadminplugin.simplifiedpermissions import SimplifiedPermissions
         if SimplifiedPermissions and self.env.is_enabled(SimplifiedPermissions):
+            shown_groups = AutoCompleteGroup(self.env).get_autocomplete_values('shown_groups')
             sp = SimplifiedPermissions(self.env)
             for group, data in sp.group_memberships().items():
-                shown_groups = get_autocomplete_values(self.env, 'shown_groups')
                 if all or group in shown_groups:
                     group = group.title().replace("_"," ")
                     if data['domains']:
@@ -383,4 +381,5 @@ class AutoCompleteSystem(Component):
         pass
 
     def group_removed(self, groupname):
-        remove_autocomplete_name(self.env, 'shown_groups', groupname)
+        AutoCompleteGroup(self.env).remove_autocomplete_name('shown_groups', 
+                                                             groupname)
