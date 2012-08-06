@@ -52,6 +52,9 @@ from trac.admin.api import IAdminPanelProvider
 from trac.util.translation import _
 
 from simplifiedpermissionsadminplugin.api import IGroupMembershipChangeListener   
+from autocompleteplugin import model
+from autocompleteplugin.model import get_autocomplete_values,\
+    remove_autocomplete_name
 
 class AutoCompleteForMailinglist(Component):
     """Enable auto completing / searchable user lists for mailinglists pages."""
@@ -267,10 +270,6 @@ class AutoCompleteBasedOnSessions(Component):
 
 class AutoCompleteSystem(Component):
     implements(ITemplateProvider, ITemplateStreamFilter, IGroupMembershipChangeListener)
-    
-    shown_groups = ListOption('autocomplete', 'shown_groups',
-                               'project_managers,project_viewers,external_developers', doc=
-        """User groups used in auto complete enabled inputs.""")
 
     autocompleters    = ExtensionPoint(IAutoCompleteProvider)
     autocompleteusers = ExtensionPoint(IAutoCompleteUser)
@@ -351,7 +350,8 @@ class AutoCompleteSystem(Component):
         if SimplifiedPermissions and self.env.is_enabled(SimplifiedPermissions):
             sp = SimplifiedPermissions(self.env)
             for group, data in sp.group_memberships().items():
-                if all or group in self.shown_groups:
+                shown_groups = get_autocomplete_values(self.env, 'shown_groups')
+                if all or group in shown_groups:
                     group = group.title().replace("_"," ")
                     if data['domains']:
                         group = "%s (Plus: %s)" % (group, ", ".join(data['domains']))
@@ -382,10 +382,5 @@ class AutoCompleteSystem(Component):
     def group_added(self, groupname):
         pass
 
-    def group_removed(self, groupname):        
-        set_groups = self.shown_groups       
-        if groupname in self.shown_groups: 
-            set_groups.remove(groupname)
-            self.config.set('autocomplete', 'shown_groups',
-                                               ','.join(set_groups))
-            self.config.save()                               
+    def group_removed(self, groupname):
+        remove_autocomplete_name(self.env, 'shown_groups', groupname)

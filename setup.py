@@ -63,6 +63,7 @@ setup(
     entry_points = {
         'trac.plugins': [
             'autocompleteplugin = autocompleteplugin',
+            'autocompleteplugin.model = autocompleteplugin.model',
 
         ]    
     }
