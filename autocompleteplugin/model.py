@@ -33,6 +33,7 @@ from trac.env import IEnvironmentSetupParticipant
 from trac.db.schema import Table, Column
 from trac.db.api import DatabaseManager
 from trac.config import ListOption
+from tracsqlhelper import execute_non_query, get_scalar, create_table
 
 class AutoCompleteModel(Component):
     implements(IEnvironmentSetupParticipant)
@@ -45,13 +46,6 @@ class AutoCompleteModel(Component):
     _default_autocomplete_name = _default_autocomplete_values.name
     _default_autocomplete_description = _default_autocomplete_values.__doc__
 
-    _autocomplete_schemas = [Table('autocomplete', key='name')[ 
-                                Column('name', 'text'),
-                                Column('description', 'text')],
-                             Table('autocomplete_values')[
-                                Column('autocomplete_name', 'text'), 
-                                Column('value', 'text')]]
-
     #IEnvironmentSetupParticipant methods
     def environment_created(self):
         """Called when a new Trac environment is created."""
@@ -63,22 +57,8 @@ class AutoCompleteModel(Component):
         Should return `True` if this participant needs an upgrade to be
         performed, `False` otherwise.
         """
-        autocomplete_tables = ['autocomplete', 'autocomplete_values']
-        
-        try:
-            @self.env.with_transaction()
-            def check(db):
-                cursor = db.cursor()
-                for table_name in autocomplete_tables:
-                    sql = 'SELECT * FROM %s' % table_name
-                    cursor.execute(sql)
-                    cursor.fetchone()
-        except Exception, ex:
-            self.log.debug('''Upgrade of schema needed for AutoComplete plugin''', 
-                           exc_info=True)
-            return True
-        
-        return False
+        version = self.version()
+        return version < len(self.steps)
 
     def upgrade_environment(self, db):
         """Actually perform an environment upgrade.
@@ -90,32 +70,58 @@ class AutoCompleteModel(Component):
         However, if the `upgrade_environment` consists of small, restartable,
         steps of upgrade, it can decide to commit on its own after each
         successful step.
-        """        
-        self.log.debug('Upgrading schema for AutoComplete plugin')
-        connector = DatabaseManager(self.env).get_connector()[0]
-        cursor = db.cursor()
+        """
+        if not self.environment_needs_upgrade(db):
+            return
 
-        for table in self._autocomplete_schemas:
-            for stmt in connector.to_sql(table):
-                self.log.debug(stmt)
-                try:
-                    cursor.execute(stmt)
-                    #Add default autocomplete name
-                    if table.name == 'autocomplete':
-                        add_autocomplete(self.env, self._default_autocomplete_name, 
-                                         self._default_autocomplete_description)
-                    #Add default autocomplete names
-                    if table.name == 'autocomplete_values':
-                        for value in self._default_autocomplete_values:
-                            add_autocomplete_name(self.env, 
-                                                     self._default_autocomplete_name, 
-                                                     value)
+        version = self.version()
+        for version in range(self.version(), len(self.steps)):
+            for step in self.steps[version]:
+                step(self)
+        execute_non_query(self.env, """UPDATE SYSTEM SET value='%s' WHERE 
+                    name='autocompleteplugin.db_version';""" % len(self.steps))
+        
+    def version(self):
+        """Returns version of the database (an int)"""
+        version = get_scalar(self.env, """SELECT value FROM system WHERE name = 
+                                        'autocompleteplugin.db_version';""")
+        if version:
+            return int(version)
+        return 0
+    
+    ### upgrade steps
 
-                        #Remove shown_groups from config
-                        self.config.set('autocomplete', 'shown_groups', None)
-                        self.config.save()
-                except Exception, ex:
-                    self.log.exception('Failed to add tables. ')
+    def create_db(self):
+        autocomplete_table = Table('autocomplete', key='name')[ 
+                                Column('name', 'text'),
+                                Column('description', 'text')]
+        autocomplete_values_table = Table('autocomplete_values')[
+                                Column('autocomplete_name', 'text'), 
+                                Column('value', 'text')]
+
+        create_table(self.env, autocomplete_table)
+        create_table(self.env, autocomplete_values_table)
+        execute_non_query(self.env, """INSERT INTO system (name, value) VALUES 
+                                    ('autocompleteplugin.db_version', '1');""")
+        
+    def add_default_data(self):
+        #Add default autocomplete name
+        add_autocomplete(self.env, self._default_autocomplete_name, 
+                         self._default_autocomplete_description)
+        #Add default autocomplete names
+        for value in self._default_autocomplete_values:
+            add_autocomplete_name(self.env, 
+                                 self._default_autocomplete_name, 
+                                 value)
+            
+    def remove_data_from_config(self):
+        #Remove shown_groups from config
+        self.config.set('autocomplete', 'shown_groups', None)
+        self.config.save()
+    
+    # ordered steps for upgrading
+    steps = [ [ create_db, add_default_data, remove_data_from_config ] # version 1
+            ]
 
 def get_autocomplete_values(env, autocomplete_name):
     """Returns a list of values for the given autocomplete_name"""
