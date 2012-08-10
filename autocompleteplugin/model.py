@@ -40,7 +40,7 @@ class AutoCompleteModel(Component):
     
     #Default values, read from trac.ini on creation
     _default_autocomplete_values = ListOption('autocomplete', 'shown_groups',
-                               'project_managers,project_viewers,external_developers', doc=
+                               'project_viewers,project_managers,project_members', doc=
                                """User groups used in auto complete enabled inputs.""")
 
     _default_autocomplete_name = _default_autocomplete_values.name
