@@ -211,7 +211,7 @@ class AutoCompleteBasedOnPermissions(Component):
                         # if the 'never logged in' text changes, then update
                         # plugins/open/autocompleteplugin/autocompleteplugin/htdocs/js/jquery.tracautocomplete.js
                         yield {'sid': member.sid,
-                               'name': member.get('name',"%s (never logged in)" % member.sid),
+                               'name': member.get('name', member.sid),
                                'email': member.get('email','')}
         else:
             perm = PermissionSystem(self.env)

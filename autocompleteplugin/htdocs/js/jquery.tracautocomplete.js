@@ -100,7 +100,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
                 	return;
         	});
                 // This string comes from plugins/open/autocompleteplugin/autocompleteplugin/autocomplete.py
-        	return label.replace(" (never logged in)", '')
+        	return label
         }
         function pullinfieldVal() {
           $('#' + id).data('addEntry')(infield.val());
