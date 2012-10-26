@@ -36,7 +36,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         options = $.extend({
           // Default option values
           // Button with label and attributes
-          button: {text:'Add', attr:{'class':'sprite-button sprite-button40'}},
+          button: {text:'Add', attr:{'class':'btn btn-mini btn-primary'}},
           show_button: true,
           // Delimeter expected
           delimiter: /\s*(?:\s|[,;])\s*/,
