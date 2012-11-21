@@ -206,14 +206,18 @@ class AutoCompleteBasedOnPermissions(Component):
         from simplifiedpermissionsadminplugin.simplifiedpermissions import SimplifiedPermissions
         if SimplifiedPermissions and self.env.is_enabled(SimplifiedPermissions):
             sp = SimplifiedPermissions(self.env)
+            # Keep track of users that have already been found to prevent
+            # yielding duplicates of users belonging to several groups
+            yielded_sids = set()
             for group, data in sp.group_memberships().items():
                 for member in data['members']:
-                    if q in member.sid:
+                    if q in member.sid and member.sid not in yielded_sids:
                         # if the 'never logged in' text changes, then update
                         # plugins/open/autocompleteplugin/autocompleteplugin/htdocs/js/jquery.tracautocomplete.js
                         yield {'sid': member.sid,
                                'name': member.get('name', member.sid),
                                'email': member.get('email','')}
+                        yielded_sids.add(member.sid)
         else:
             perm = PermissionSystem(self.env)
             users = []

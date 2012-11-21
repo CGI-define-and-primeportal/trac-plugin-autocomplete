@@ -43,6 +43,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
           // Autocomplete source
           source: function(request, response) {
             var matches = [];
+            var found_sids = [];
             $.each(project_users, function(groupName) {
               $.each(project_users[groupName], function(i, user) {
                 var s = user.sid.toLowerCase() + user.email.toLowerCase() + user.name.toLowerCase();
@@ -51,7 +52,12 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
                   if (user.email) {
                     label += $.format(' <$1>', user.email);
                   }
-                  matches.push({label: label, value: user.sid});
+                  // Only add each user once no matter how many groups she is a
+                  // member of
+                  if ($.inArray(user.sid, found_sids) < 0) {
+                      matches.push({label: label, value: user.sid});
+                      found_sids.push(user.sid);
+                  }
                 }
               });
             });
