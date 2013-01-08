@@ -123,7 +123,7 @@ class AutoCompleteForTickets(Component):
                        ]
         return {"ticket.html": action_ctls +
                                [("#field-qualityassurancecontact", 'select'),
-                                ('#field-cc', 'text'),
+                                ('#field-cc[type=text]', 'text'),
                                 ('#field-keywords', 'text', '{source: %s}' % to_json(
                         self._current_keywords).encode('utf8'))],
                 # These are for fields that are pre-loaded using a stored query for instance
