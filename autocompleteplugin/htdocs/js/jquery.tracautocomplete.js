@@ -36,7 +36,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         options = $.extend({
           // Default option values
           // Button with label and attributes
-          button: {text:'Add', attr:{'class':'btn btn-mini btn-primary'}},
+          button: {text:'Add', attr:{'class':'btn btn-mini btn-primary margin-left'}},
           show_button: true,
           // Delimeter expected
           delimiter: /\s*(?:\s|[,;])\s*/,
@@ -140,7 +140,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
           entry.addClass('required')
         }
         // Holder for the removal buttons
-        var boxHolder = $('<div>').addClass(id + '-buttons');
+        var boxHolder = $('<div>').addClass(id + '-buttons cf');
         entry.data('updateBoxes', function() {
           boxHolder.empty();
           $.each(entries, function(idx, val) {
@@ -150,8 +150,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
           });
           $('.' + id + '-buttons button')
               .attr('title', 'Click to remove')
-//              .button()
-              .css('float','left').css('margin','2px')
+              .addClass("left margin-tiny")
               .click(function(e) {
                 entry.data('removeEntry')($(this).attr('name'));
                 return false;
