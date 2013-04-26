@@ -43,7 +43,22 @@ class IAutoCompleteProvider(Interface):
          permission can be None. The url will be adjusted to be
          correct for this Trac instance.
          """
-        
+
+class IExtendedAutoCompleteProvider(Interface):
+    """Extension point interface for components providing autocomplete AJAX 
+    endpoints to Extended AutocompleteUser.
+    """
+
+    def get_endpoint():
+        """Return an iterable which provides dictionaries like:
+        {'url': '/ajax/usersearch/area',
+         'name': 'Search Domain',
+         'permission': 'SEARCH_AREA'}
+
+         permission can be None. The url will be adjusted to be
+         correct for this Trac instance.
+         """
+
 class IAutoCompleteUser(Interface):
     """Extention point interface for components showing pages which
     need autocompleting fields.
@@ -53,6 +68,19 @@ class IAutoCompleteUser(Interface):
     select elements with search facilities, based on which
     IAutoCompleteProviders are available and the current user
     permissions.
+    """
+
+    def get_templates():
+        """Return a dictionary like:
+        {'ticket.html': [('#field-owner','select'),
+                         ('#field-owner','text', 'source: $.noop'}),
+                         ...
+                         ]}
+        """
+
+class IExtendedAutoCompleteUser(Interface):
+    """Extension point interface for components showing pages which
+    need extended autocompleting fields.
     """
 
     def get_templates():

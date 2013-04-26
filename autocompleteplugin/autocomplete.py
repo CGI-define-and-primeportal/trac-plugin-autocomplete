@@ -41,7 +41,8 @@ from genshi.builder import tag
 from genshi.filters.transform import Transformer
 from trac.env import IEnvironmentSetupParticipant
 from trac.util.presentation import to_json
-from api import IAutoCompleteProvider, IAutoCompleteUser
+from api import IAutoCompleteProvider, IAutoCompleteUser, IExtendedAutoCompleteProvider,\
+    IExtendedAutoCompleteUser
 from trac.core import ExtensionPoint
 from trac.perm import PermissionSystem
 from trac.web.session import DetachedSession
@@ -269,83 +270,11 @@ class AutoCompleteBasedOnSessions(Component):
                        'name': user[1],
                        'email': user[2]}
 
+class AutoCompleteBase(Component):
+    """ Base class that should be derived by AutoCompleteSystem classes """
 
-class AutoCompleteSystem(Component):
-    implements(ITemplateProvider, ITemplateStreamFilter, IGroupMembershipChangeListener)
-
-    autocompleters    = ExtensionPoint(IAutoCompleteProvider)
-    autocompleteusers = ExtensionPoint(IAutoCompleteUser)
-
-    # ITemplateProvider
-    def get_htdocs_dirs(self):
-        return [('autocomplete', resource_filename(__name__, 'htdocs'))]
-          
-    def get_templates_dirs(self):
-        return []
-
-    # ITemplateStreamFilter
-    def filter_stream(self, req, method, filename, stream, data):
-        for autocompleteuser in self.autocompleteusers:
-            d = autocompleteuser.get_templates()
-            if filename in d:
-                stream = self._enable_autocomplete_for_page(req, method, filename, stream, data, d[filename])
-        return stream
-    
-    # internal
-    def _enable_autocomplete_for_page(self, req, method, filename, stream, data, inputs):
-        add_stylesheet(req, 'autocomplete/css/autocomplete.css')
-        add_script(req, 'autocomplete/js/jquery.tracautocomplete.js')
-        
-        # hmm, must be a nicer way to give a calculated URL to some javascript
-        # guess we could process the whole javascript page through genshi...
-        add_script_data(req, {'autocomplete_cancel_image_url': 
-                              req.href.chrome('autocomplete','parent.png')})
-
-        username_completers = []
-        for autocompleter in self.autocompleters:
-            endpoint = autocompleter.get_endpoint()
-            if not endpoint:
-                continue
-            if endpoint['permission'] is None or req.perm.has_permission(endpoint['permission']):
-                # Maybe we could support some 'local data' mode instead of just url?
-                # after all, we're already putting the project_users list into the page!
-                # that would mean folding AutoCompleteBasedOnSessions back into this component.
-                username_completers.append({'url': req.href(endpoint['url']),
-                                            'name': endpoint['name']})
-        add_script_data(req, {'username_completers': username_completers})
-                
-        # we could put this into some other URL which the browser could cache?
-        #show users from all groups, shown or not, on the members page
-        if req.path_info.startswith('/admin/access/access_and_groups'):
-            add_script_data(req, {'project_users': self._project_users(all=True)})
-        else:
-            add_script_data(req, {'project_users': self._project_users()})
-        
-        
-        js = ''
-        for input_ in inputs:
-            if len(input_) == 3:
-                selector, method_, options = input_
-            else:
-                selector, method_ = input_
-                options = "{}"
-            js += '$("%s").makeAutocompleteSearch("%s"' % (selector, method_ or 'select')
-            if options:
-                if not isinstance(options, basestring):
-                    js += ', %s' % to_json(options)
-                else:
-                    js += ', %s' % options
-            js += ')\n'
-                
-        stream = stream | Transformer('//head').append(tag.script("""
-        jQuery(document).ready(
-        function($) {
-        %s
-        });
-        """ % js,type="text/javascript"))
-        return stream
-    
     def _project_users(self, all=False):
+        """ Get project users """
         people = {}
         session_users = False
         from simplifiedpermissionsadminplugin.simplifiedpermissions import SimplifiedPermissions
@@ -373,7 +302,78 @@ class AutoCompleteSystem(Component):
                                                 'email': email})
 
         return people
+
+class AutoCompleteSystem(AutoCompleteBase):
+    implements(ITemplateProvider, ITemplateStreamFilter, IGroupMembershipChangeListener)
+
+    autocompleters    = ExtensionPoint(IAutoCompleteProvider)
+    autocompleteusers = ExtensionPoint(IAutoCompleteUser)
+
+    # ITemplateProvider
+    def get_htdocs_dirs(self):
+        return [('autocomplete', resource_filename(__name__, 'htdocs'))]
+          
+    def get_templates_dirs(self):
+        return []
+
+    # ITemplateStreamFilter
+    def filter_stream(self, req, method, filename, stream, data):
+        for autocompleteuser in self.autocompleteusers:
+            d = autocompleteuser.get_templates()
+            if filename in d:
+                stream = self._enable_autocomplete_for_page(req, method, filename, stream, data, d[filename])
+        return stream
+    
+    # Internal
+    def _enable_autocomplete_for_page(self, req, method, filename, stream, data, inputs):
+        add_stylesheet(req, 'autocomplete/css/autocomplete.css')
+        add_script(req, 'autocomplete/js/jquery.tracautocomplete.js')
         
+        # hmm, must be a nicer way to give a calculated URL to some javascript
+        # guess we could process the whole javascript page through genshi...
+        add_script_data(req, {'autocomplete_cancel_image_url': 
+                              req.href.chrome('autocomplete','parent.png')})
+
+        username_completers = []
+        for autocompleter in self.autocompleters:
+            endpoint = autocompleter.get_endpoint()
+            if not endpoint:
+                continue
+            if endpoint['permission'] is None or req.perm.has_permission(endpoint['permission']):
+                # Maybe we could support some 'local data' mode instead of just url?
+                # after all, we're already putting the project_users list into the page!
+                # that would mean folding AutoCompleteBasedOnSessions back into this component.
+                username_completers.append({'url': req.href(endpoint['url']),
+                                            'name': endpoint['name']})
+        add_script_data(req, {'username_completers': username_completers})
+                
+        # we could put this into some other URL which the browser could cache?
+        #show users from all groups, shown or not, on the members page
+        add_script_data(req, {'project_users': self._project_users()})
+
+        js = ''
+        for input_ in inputs:
+            if len(input_) == 3:
+                selector, method_, options = input_
+            else:
+                selector, method_ = input_
+                options = "{}"
+            js += '$("%s").makeAutocompleteSearch("%s"' % (selector, method_ or 'select')
+            if options:
+                if not isinstance(options, basestring):
+                    js += ', %s' % to_json(options)
+                else:
+                    js += ', %s' % options
+            js += ')\n'
+                
+        stream = stream | Transformer('//head').append(tag.script("""
+        jQuery(document).ready(
+        function($) {
+        %s
+        });
+        """ % js,type="text/javascript"))
+        return stream
+
     # IGroupMembershipChangeListener methods
     def user_added(self, username, groupname):
         pass
@@ -387,3 +387,28 @@ class AutoCompleteSystem(Component):
     def group_removed(self, groupname):
         AutoCompleteGroup(self.env).remove_autocomplete_name('shown_groups', 
                                                              groupname)
+
+class ExtendedAutoCompleteSystem(AutoCompleteBase):
+    implements(ITemplateProvider, ITemplateStreamFilter)
+
+    autocompleters    = ExtensionPoint(IExtendedAutoCompleteProvider)
+    autocompleteusers = ExtensionPoint(IExtendedAutoCompleteUser)
+
+    # ITemplateProvider
+    def get_htdocs_dirs(self):
+        return [('autocomplete', resource_filename(__name__, 'htdocs'))]
+
+    def get_templates_dirs(self):
+        return []
+
+    # ITemplateStreamFilter
+    def filter_stream(self, req, method, filename, stream, data):
+        for autocompleteuser in self.autocompleteusers:
+            d = autocompleteuser.get_templates()
+            if filename in d:
+                stream = self._enable_autocomplete_for_page(req, method, filename, stream, data, d[filename])
+        return stream
+
+    # Internal
+    def _enable_autocomplete_for_page(self, req, method, filename, stream, data, inputs):
+        return stream
