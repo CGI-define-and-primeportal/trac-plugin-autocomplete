@@ -44,13 +44,14 @@ class IAutoCompleteProvider(Interface):
          correct for this Trac instance.
          """
 
-class IExtendedAutoCompleteProvider(Interface):
-    """Extension point interface for components providing autocomplete AJAX 
-    endpoints to Extended AutocompleteUser.
+class IADLDSAutoCompleteProvider(Interface):
+    """Extension point interface for a ADLDS component providing autocomplete AJAX 
+    endpoints to Extended AutocompleteUser. This interface should only be 
+    implemented once for a ADLDS provider.
     """
 
     def get_endpoint():
-        """Return an iterable which provides dictionaries like:
+        """Return dictionary like:
         {'url': '/ajax/usersearch/area',
          'name': 'Search Domain',
          'permission': 'SEARCH_AREA'}
