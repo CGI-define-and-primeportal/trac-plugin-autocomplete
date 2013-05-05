@@ -79,7 +79,7 @@ class IAutoCompleteUser(Interface):
                          ]}
         """
 
-class IExtendedAutoCompleteUser(Interface):
+class ISelect2AutoCompleteUser(Interface):
     """Extension point interface for components showing pages which
     need extended autocompleting fields.
     """

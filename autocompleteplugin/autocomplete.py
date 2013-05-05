@@ -39,9 +39,10 @@ from pkg_resources import resource_filename
 from trac.web.api import ITemplateStreamFilter, IRequestHandler
 from genshi.builder import tag
 from genshi.filters.transform import Transformer
+from genshi.core import Markup
 from trac.env import IEnvironmentSetupParticipant
 from trac.util.presentation import to_json
-from api import IAutoCompleteProvider, IAutoCompleteUser, IExtendedAutoCompleteUser
+from api import IAutoCompleteProvider, IAutoCompleteUser, ISelect2AutoCompleteUser, IADLDSAutoCompleteProvider
 from trac.core import ExtensionPoint
 from trac.perm import PermissionSystem
 from trac.web.session import DetachedSession
@@ -53,7 +54,6 @@ from trac.util.translation import _
 
 from simplifiedpermissionsadminplugin.api import IGroupMembershipChangeListener   
 from autocompleteplugin.model import AutoCompleteGroup
-from autocompleteplugin.api import IADLDSAutoCompleteProvider
 
 class AutoCompleteForMailinglist(Component):
     """Enable auto completing / searchable user lists for mailinglists pages."""
@@ -270,40 +270,7 @@ class AutoCompleteBasedOnSessions(Component):
                        'name': user[1],
                        'email': user[2]}
 
-class AutoCompleteBase(Component):
-    """ Base class that should be derived by AutoCompleteSystem classes """
-
-    def _project_users(self, all=False):
-        """ Get project users """
-        people = {}
-        session_users = False
-        from simplifiedpermissionsadminplugin.simplifiedpermissions import SimplifiedPermissions
-        if SimplifiedPermissions and self.env.is_enabled(SimplifiedPermissions):
-            shown_groups = AutoCompleteGroup(self.env).get_autocomplete_values('shown_groups')
-            sp = SimplifiedPermissions(self.env)
-            for group, data in sp.group_memberships().items():
-                if all or group in shown_groups:
-                    group = group.title().replace("_"," ")
-                    if data['domains']:
-                        group = "%s (Plus: %s)" % (group, ", ".join(data['domains']))
-                        session_users = True
-                    people[group] = []
-                    for member in data['members']:
-                        people[group].append({'sid': member.sid,
-                                              'name': member.get('name',"%s (never logged in)" % member.sid),
-                                              'email': member.get('email','')})
-        else:
-            session_users = True
-        if session_users:
-            people['Current Users'] = []
-            for username, name, email in self.env.get_known_users():
-                people['Current Users'].append({'sid': username,
-                                                'name': name,
-                                                'email': email})
-
-        return people
-
-class AutoCompleteSystem(AutoCompleteBase):
+class AutoCompleteSystem(Component):
     implements(ITemplateProvider, ITemplateStreamFilter, IGroupMembershipChangeListener)
 
     autocompleters    = ExtensionPoint(IAutoCompleteProvider)
@@ -374,6 +341,36 @@ class AutoCompleteSystem(AutoCompleteBase):
         """ % js,type="text/javascript"))
         return stream
 
+    def _project_users(self, all=False):
+        """ Get project users """
+        people = {}
+        session_users = False
+        from simplifiedpermissionsadminplugin.simplifiedpermissions import SimplifiedPermissions
+        if SimplifiedPermissions and self.env.is_enabled(SimplifiedPermissions):
+            shown_groups = AutoCompleteGroup(self.env).get_autocomplete_values('shown_groups')
+            sp = SimplifiedPermissions(self.env)
+            for group, data in sp.group_memberships().items():
+                if all or group in shown_groups:
+                    group = group.title().replace("_"," ")
+                    if data['domains']:
+                        group = "%s (Plus: %s)" % (group, ", ".join(data['domains']))
+                        session_users = True
+                    people[group] = []
+                    for member in data['members']:
+                        people[group].append({'sid': member.sid,
+                                              'name': member.get('name',"%s (never logged in)" % member.sid),
+                                              'email': member.get('email','')})
+        else:
+            session_users = True
+        if session_users:
+            people['Current Users'] = []
+            for username, name, email in self.env.get_known_users():
+                people['Current Users'].append({'sid': username,
+                                                'name': name,
+                                                'email': email})
+
+        return people
+
     # IGroupMembershipChangeListener methods
     def user_added(self, username, groupname):
         pass
@@ -388,11 +385,11 @@ class AutoCompleteSystem(AutoCompleteBase):
         AutoCompleteGroup(self.env).remove_autocomplete_name('shown_groups', 
                                                              groupname)
 
-class ExtendedAutoCompleteSystem(AutoCompleteBase):
+class Select2AutoCompleteSystem(Component):
     implements(ITemplateProvider, ITemplateStreamFilter)
 
     autocompleter = ExtensionPoint(IADLDSAutoCompleteProvider)
-    autocompleteusers = ExtensionPoint(IExtendedAutoCompleteUser)
+    autocompleteusers = ExtensionPoint(ISelect2AutoCompleteUser)
 
     # ITemplateProvider
     def get_htdocs_dirs(self):
@@ -411,84 +408,68 @@ class ExtendedAutoCompleteSystem(AutoCompleteBase):
 
     # Internal
     def _enable_autocomplete_for_page(self, req, method, filename, stream, data, inputs):
-#        add_stylesheet(req, 'autocomplete/css/autocomplete.css')
+        add_stylesheet(req, 'autocomplete/css/select2_autocomplete.css')
 
         #There should never be multiple implementations of IADLDSAutoCompleteProvider
         endpoint = self.autocompleter[0].get_endpoint()
         if endpoint.get('permission') is None or req.perm.has_permission(endpoint.get('permission')):
-            #add_script_data(req, {'username_completers': username_completers})
-            add_script_data(req, {'project_users': self._project_users()})
-    
             js = ''
             for input_ in inputs:
                 selector, method_ = input_
                 js += '$("%s").select2({' % (method_ + selector)
-                js += '''width: "auto",
+                js += '''width: "500px",
                         dropdownCssClass: "ui-dialog",'''
                 js += 'placeholder: "%s %s",' % (_('Search users within this project and'), 
                                                  endpoint.get('name'))
-                js += '''minimumInputLength: 2,
-            ajax: {'''
+                js += 'minimumInputLength: 2, ajax: {'
                 js += 'url: "%s",' % req.href(endpoint.get('url'))
-                js += '''dataType: 'json',
-          data: function (term, page) {
+                js += '''
+        dataType: 'json',
+        data: function (term, page) {
             return {
-              q: term
+                q: term
             };
           },
           results: function (data, page) {
-            //data.project_users = project_users;
-            //data.push(project_users);
-            //data.push({id:"project_users", text:"Project users", children:[{id:"project_managers", text:"Project managers", children:[{id:"user1", text:"User 1"}]}]});
-            console.log(data);
-            /*$.each(project_users, function(key, value) {
-                console.log("key="+key);
-                console.log("value="+value);
-                $.each(value, function(k, v) {
-                    console.log("sub_key="+k);
-                    console.log("sub_value"+v);
-                });
-            });*/
-            return { results: data };
+                return { results: data };
           }
+        },
+        formatResult: userFormatResult,
+        formatSelection: userFormatSelection,
+        escapeMarkup: function (m) { 
+            return m; 
         }
-      });
+    });
     '''
-        stream = stream | Transformer('//head').append(tag.script("""
-        jQuery(document).ready(
-        function($) {
+        #Add formatting functions
+        stream = stream | Transformer('//head').append(tag.script(Markup('''
+function userFormatResult(user) {
+    if (user.text !== undefined) {
+        return '<div class="header"><h5>' + user.text + '</h5></div>';
+    }
+    var markup = "<table class='user-search-result'><tr>";
+    if (user.id !== undefined) {
+        markup += "<td>" + user.id + "</td>";
+    }
+    if (user.displayName !== undefined) {
+        markup += "<td>" + user.displayName + "</td>";
+    }
+    if (user.mail !== undefined) {
+        markup += "<td>" + user.mail +"</td>";
+    }
+    markup += "</tr></table>";
+    return markup;
+}
+function userFormatSelection(user) {
+    return user.id;
+}
+'''), type="text/javascript"))
+    
+        stream = stream | Transformer('//head').append(tag.script('''
+jQuery(document).ready(
+    function($) {
         %s
-        });
-        """ % js,type="text/javascript"))
+});
+''' % js,type="text/javascript"))
 
         return stream
-    
-    def _project_users(self, all=False):
-        """ Get project users """
-        people = {}
-        session_users = False
-        from simplifiedpermissionsadminplugin.simplifiedpermissions import SimplifiedPermissions
-        if SimplifiedPermissions and self.env.is_enabled(SimplifiedPermissions):
-            shown_groups = AutoCompleteGroup(self.env).get_autocomplete_values('shown_groups')
-            sp = SimplifiedPermissions(self.env)
-            for group, data in sp.group_memberships().items():
-                if all or group in shown_groups:
-                    group = group.title().replace("_"," ")
-                    if data['domains']:
-                        group = "%s (Plus: %s)" % (group, ", ".join(data['domains']))
-                        session_users = True
-                    people[group] = []
-                    for member in data['members']:
-                        people[group].append({'id': member.sid,
-                                              'text': member.get('name',"%s (never logged in)" % member.sid),
-                                              'email': member.get('email','')})
-        else:
-            session_users = True
-        if session_users:
-            people['Current Users'] = []
-            for username, name, email in self.env.get_known_users():
-                people['Current Users'].append({'id': username,
-                                                'text': name,
-                                                'email': email})
-
-        return people
