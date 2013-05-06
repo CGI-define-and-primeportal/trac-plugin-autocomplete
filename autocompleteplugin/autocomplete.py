@@ -447,17 +447,21 @@ function userFormatResult(user) {
     if (user.text !== undefined) {
         return '<div class="header"><h5>' + user.text + '</h5></div>';
     }
-    var markup = "<table class='user-search-result'><tr>";
+    var markup = '<div class="result">';
     if (user.id !== undefined) {
-        markup += "<td>" + user.id + "</td>";
+        markup += '<span class="username"><p>' + user.id + '</p></span>';
     }
-    if (user.displayName !== undefined) {
-        markup += "<td>" + user.displayName + "</td>";
+    if(user.displayName !== undefined || user.mail !== undefined) {
+        markup += '<span class="info">';
+        if (user.displayName !== undefined) {
+            markup += '<p>' + user.displayName + '</p>';
+        }
+        if (user.mail !== undefined) {
+            markup += '<p>&lt;' + user.mail + '&gt;</p>';
+        }
+        markup += '</span>';
     }
-    if (user.mail !== undefined) {
-        markup += "<td>" + user.mail +"</td>";
-    }
-    markup += "</tr></table>";
+    markup += '</div>';
     return markup;
 }
 function userFormatSelection(user) {
