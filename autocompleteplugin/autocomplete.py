@@ -409,10 +409,18 @@ class Select2AutoCompleteSystem(Component):
     # Internal
     def _enable_autocomplete_for_page(self, req, method, filename, stream, data, inputs):
         add_stylesheet(req, 'autocomplete/css/select2_autocomplete.css')
+        user_lookup_url = req.href('/ajax/userlookup/adlds')
 
         #There should never be multiple implementations of IADLDSAutoCompleteProvider
         endpoint = self.autocompleter[0].get_endpoint()
         if endpoint.get('permission') is None or req.perm.has_permission(endpoint.get('permission')):
+            #Js to initialize select2
+            #Note that "createSearchChoice" has a bit of a hack to it, it is
+            #done this way in order to be able to add users that are not part
+            #of the search result.. But they must still be able to be added if
+            #validated.
+            #Future versions of Select2 might make this simpler in which case
+            #we should definitly rewrite that part.
             js = ''
             for input_ in inputs:
                 selector, method_ = input_
@@ -434,6 +442,11 @@ class Select2AutoCompleteSystem(Component):
                 return { results: data };
           }
         },
+        createSearchChoice: function(term, data) {
+            if (data.length == 0) {
+                return { id: -1, text:term }
+            }
+        },
         formatResult: userFormatResult,
         formatSelection: userFormatSelection,
         escapeMarkup: function (m) { 
@@ -444,30 +457,51 @@ class Select2AutoCompleteSystem(Component):
         #Add formatting functions
         stream = stream | Transformer('//head').append(tag.script(Markup('''
 function userFormatResult(user) {
-    if (user.text !== undefined) {
-        return '<div class="header"><h5>' + user.text + '</h5></div>';
+    var markup = '';
+    if (user.id == -1) {
+        //Hack to be able to add users that are not searchable.
+        markup += '<span id="select2_matches">';
+        $.ajax({
+            url: "%s",
+            data: "q=" + user.text,
+            success: function(data) {
+                if (data.id !== undefined) {
+                    user.id = data.id;
+                    $('#select2_matches').text('Add external user' + data.id + ', ' + data.displayName + '?');
+                }
+                else {
+                    $('#select2_matches').closest('li').removeClass('select2-result-selectable select2-highlighted');
+                }
+            }
+        });
+        markup += 'No matches found for ' + user.text + '</span>';
     }
-    var markup = '<div class="result">';
-    if (user.id !== undefined) {
-        markup += '<span class="username"><p>' + user.id + '</p></span>';
-    }
-    if(user.displayName !== undefined || user.mail !== undefined) {
-        markup += '<span class="info">';
-        if (user.displayName !== undefined) {
-            markup += '<p>' + user.displayName + '</p>';
+    else {
+        if (user.text !== undefined) {
+            return '<div class="header"><h5>' + user.text + '</h5></div>';
         }
-        if (user.mail !== undefined) {
-            markup += '<p>&lt;' + user.mail + '&gt;</p>';
+        markup = '<div class="result">';
+        if (user.id !== undefined) {
+            markup += '<span class="username"><p>' + user.id + '</p></span>';
         }
-        markup += '</span>';
+        if(user.displayName !== undefined || user.mail !== undefined) {
+            markup += '<span class="info">';
+            if (user.displayName !== undefined) {
+                markup += '<p>' + user.displayName + '</p>';
+            }
+            if (user.mail !== undefined) {
+                markup += '<p>&lt;' + user.mail + '&gt;</p>';
+            }
+            markup += '</span>';
+        }
+        markup += '</div>';
     }
-    markup += '</div>';
     return markup;
 }
 function userFormatSelection(user) {
     return user.id;
 }
-'''), type="text/javascript"))
+''' % user_lookup_url), type="text/javascript"))
     
         stream = stream | Transformer('//head').append(tag.script('''
 jQuery(document).ready(
