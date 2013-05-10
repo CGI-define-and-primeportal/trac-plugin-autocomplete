@@ -295,11 +295,6 @@ class AutoCompleteSystem(Component):
     def _enable_autocomplete_for_page(self, req, method, filename, stream, data, inputs):
         add_stylesheet(req, 'autocomplete/css/autocomplete.css')
         add_script(req, 'autocomplete/js/jquery.tracautocomplete.js')
-        
-        # hmm, must be a nicer way to give a calculated URL to some javascript
-        # guess we could process the whole javascript page through genshi...
-        add_script_data(req, {'autocomplete_cancel_image_url': 
-                              req.href.chrome('autocomplete','parent.png')})
 
         username_completers = []
         for autocompleter in self.autocompleters:
