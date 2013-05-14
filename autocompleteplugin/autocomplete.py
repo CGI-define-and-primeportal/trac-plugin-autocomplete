@@ -39,9 +39,10 @@ from pkg_resources import resource_filename
 from trac.web.api import ITemplateStreamFilter, IRequestHandler
 from genshi.builder import tag
 from genshi.filters.transform import Transformer
+from genshi.core import Markup
 from trac.env import IEnvironmentSetupParticipant
 from trac.util.presentation import to_json
-from api import IAutoCompleteProvider, IAutoCompleteUser
+from api import IAutoCompleteProvider, IAutoCompleteUser, ISelect2AutoCompleteUser, IADLDSAutoCompleteProvider
 from trac.core import ExtensionPoint
 from trac.perm import PermissionSystem
 from trac.web.session import DetachedSession
@@ -269,7 +270,6 @@ class AutoCompleteBasedOnSessions(Component):
                        'name': user[1],
                        'email': user[2]}
 
-
 class AutoCompleteSystem(Component):
     implements(ITemplateProvider, ITemplateStreamFilter, IGroupMembershipChangeListener)
 
@@ -291,15 +291,10 @@ class AutoCompleteSystem(Component):
                 stream = self._enable_autocomplete_for_page(req, method, filename, stream, data, d[filename])
         return stream
     
-    # internal
+    # Internal
     def _enable_autocomplete_for_page(self, req, method, filename, stream, data, inputs):
         add_stylesheet(req, 'autocomplete/css/autocomplete.css')
         add_script(req, 'autocomplete/js/jquery.tracautocomplete.js')
-        
-        # hmm, must be a nicer way to give a calculated URL to some javascript
-        # guess we could process the whole javascript page through genshi...
-        add_script_data(req, {'autocomplete_cancel_image_url': 
-                              req.href.chrome('autocomplete','parent.png')})
 
         username_completers = []
         for autocompleter in self.autocompleters:
@@ -316,12 +311,8 @@ class AutoCompleteSystem(Component):
                 
         # we could put this into some other URL which the browser could cache?
         #show users from all groups, shown or not, on the members page
-        if req.path_info.startswith('/admin/access/access_and_groups'):
-            add_script_data(req, {'project_users': self._project_users(all=True)})
-        else:
-            add_script_data(req, {'project_users': self._project_users()})
-        
-        
+        add_script_data(req, {'project_users': self._project_users()})
+
         js = ''
         for input_ in inputs:
             if len(input_) == 3:
@@ -344,8 +335,9 @@ class AutoCompleteSystem(Component):
         });
         """ % js,type="text/javascript"))
         return stream
-    
+
     def _project_users(self, all=False):
+        """ Get project users """
         people = {}
         session_users = False
         from simplifiedpermissionsadminplugin.simplifiedpermissions import SimplifiedPermissions
@@ -373,7 +365,7 @@ class AutoCompleteSystem(Component):
                                                 'email': email})
 
         return people
-        
+
     # IGroupMembershipChangeListener methods
     def user_added(self, username, groupname):
         pass
@@ -387,3 +379,130 @@ class AutoCompleteSystem(Component):
     def group_removed(self, groupname):
         AutoCompleteGroup(self.env).remove_autocomplete_name('shown_groups', 
                                                              groupname)
+
+class Select2AutoCompleteSystem(Component):
+    implements(ITemplateProvider, ITemplateStreamFilter)
+
+    autocompleter = ExtensionPoint(IADLDSAutoCompleteProvider)
+    autocompleteusers = ExtensionPoint(ISelect2AutoCompleteUser)
+
+    # ITemplateProvider
+    def get_htdocs_dirs(self):
+        return [('autocomplete', resource_filename(__name__, 'htdocs'))]
+
+    def get_templates_dirs(self):
+        return []
+
+    # ITemplateStreamFilter
+    def filter_stream(self, req, method, filename, stream, data):
+        for autocompleteuser in self.autocompleteusers:
+            d = autocompleteuser.get_templates()
+            if filename in d:
+                stream = self._enable_autocomplete_for_page(req, method, filename, stream, data, d[filename])
+        return stream
+
+    # Internal
+    def _enable_autocomplete_for_page(self, req, method, filename, stream, data, inputs):
+        add_stylesheet(req, 'autocomplete/css/select2_autocomplete.css')
+        user_lookup_url = req.href('/ajax/userlookup/adlds')
+
+        #There should never be multiple implementations of IADLDSAutoCompleteProvider
+        endpoint = self.autocompleter[0].get_endpoint()
+        if endpoint.get('permission') is None or req.perm.has_permission(endpoint.get('permission')):
+            #Js to initialize select2
+            #Note that "createSearchChoice" has a bit of a hack to it, it is
+            #done this way in order to be able to add users that are not part
+            #of the search result.. But they must still be able to be added if
+            #validated.
+            #Future versions of Select2 might make this simpler in which case
+            #we should definitly rewrite that part.
+            js = ''
+            for input_ in inputs:
+                selector, method_ = input_
+                js += '$("%s").select2({' % (method_ + selector)
+                js += '''width: "500px",
+                        dropdownCssClass: "ui-dialog",'''
+                js += 'placeholder: "%s %s",' % (_('Search users within this project and'), 
+                                                 endpoint.get('name'))
+                js += 'minimumInputLength: 2, ajax: {'
+                js += 'url: "%s",' % req.href(endpoint.get('url'))
+                js += '''
+        dataType: 'json',
+        data: function (term, page) {
+            return {
+                q: term
+            };
+          },
+          results: function (data, page) {
+                return { results: data };
+          }
+        },
+        createSearchChoice: function(term, data) {
+            if (data.length == 0) {
+                return { id: -1, text:term }
+            }
+        },
+        formatResult: userFormatResult,
+        formatSelection: userFormatSelection,
+        escapeMarkup: function (m) { 
+            return m; 
+        }
+    });
+    '''
+        #Add formatting functions
+        stream = stream | Transformer('//head').append(tag.script(Markup('''
+function userFormatResult(user) {
+    var markup = '';
+    if (user.id == -1) {
+        //Hack to be able to add users that are not searchable.
+        markup += '<span id="select2_matches">';
+        $.ajax({
+            url: "%s",
+            data: "q=" + user.text,
+            success: function(data) {
+                if (data.id !== undefined) {
+                    user.id = data.id;
+                    $('#select2_matches').text('Add external user' + data.id + ', ' + data.displayName + '?');
+                }
+                else {
+                    $('#select2_matches').closest('li').removeClass('select2-result-selectable select2-highlighted');
+                }
+            }
+        });
+        markup += 'No matches found for ' + user.text + '</span>';
+    }
+    else {
+        if (user.text !== undefined) {
+            return '<div class="header"><h5>' + user.text + '</h5></div>';
+        }
+        markup = '<div class="result">';
+        if (user.id !== undefined) {
+            markup += '<span class="username"><p>' + user.id + '</p></span>';
+        }
+        if(user.displayName !== undefined || user.mail !== undefined) {
+            markup += '<span class="info">';
+            if (user.displayName !== undefined) {
+                markup += '<p>' + user.displayName + '</p>';
+            }
+            if (user.mail !== undefined) {
+                markup += '<p>&lt;' + user.mail + '&gt;</p>';
+            }
+            markup += '</span>';
+        }
+        markup += '</div>';
+    }
+    return markup;
+}
+function userFormatSelection(user) {
+    return user.id;
+}
+''' % user_lookup_url), type="text/javascript"))
+    
+        stream = stream | Transformer('//head').append(tag.script('''
+jQuery(document).ready(
+    function($) {
+        %s
+});
+''' % js,type="text/javascript"))
+
+        return stream
