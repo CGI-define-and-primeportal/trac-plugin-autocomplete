@@ -324,7 +324,6 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
 
         var url = selectfield.val();
         var searchname = selected.text();
-        var inputclasses = ""
         var inputfield = $("<input type='text' id='" + id + "' name='" + name + "' class='" + klass + "'/>");
         if (size > 0) {
           inputfield[0].size = size;
@@ -332,20 +331,19 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
         selectfield.replaceWith(inputfield);
         var searchnote;
         if (url == '') {
-          searchnote = $("<div class='annotation'>").html("Manual entry, type <code>domain\\username</code>...");
-          inputfield.addClass("manual-entry")
+          searchnote = $("<div class='searchnote'>").html("Manual entry, type <tt>domain\\username</tt>...");
         } else {
           settings.url = url;
-          inputfield.removeClass("manual-entry").autocomplete(settings);
-          searchnote = $("<div class='annotation'>").text("Searching " + searchname);
+          inputfield.autocomplete(settings);
+          searchnote = $("<div class='searchnote'>").text("Searching " + searchname);
         }
 
-        var cancel = $("<button class='btn btn-mini btn-primary margin-left' type='button' alt='Cancel' title='Close Manual Entry'><i class='icon-remove'></i></button>");
-        cancel.tooltip({placement: "bottom"});
+        var cancel = $('<img class="cancelsearch" alt="cancel" title="Cancel Search"/>');
+        cancel.attr('src',autocomplete_cancel_image_url);
         cancel.click(function() {
+          cancel.remove();
           searchnote.remove();
           inputfield.makeAutocompleteSearch(method, settings);
-          cancel.tooltip("destroy").remove();
         });
 
         inputfield.keydown(function(e) {
