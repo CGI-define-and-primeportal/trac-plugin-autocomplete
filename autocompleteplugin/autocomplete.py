@@ -417,9 +417,10 @@ class Select2AutoCompleteSystem(Component):
             #Future versions of Select2 might make this simpler in which case
             #we should definitly rewrite that part.
             js = ''
-            for input_ in inputs:
-                selector, method_ = input_
-                js += '$("%s").select2({' % (method_ + selector)
+            selectors = [str(element + class_) for class_,element in inputs]
+
+            if selectors:
+                js += '$("%s").select2({' % ', '.join(selectors)
                 js += '''width: "500px",
                         dropdownCssClass: "ui-dialog",'''
                 js += 'placeholder: "%s %s",' % (_('Search users within this project and'), 
