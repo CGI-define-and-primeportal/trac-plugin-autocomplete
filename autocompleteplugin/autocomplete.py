@@ -463,7 +463,14 @@ function userFormatResult(user) {
             success: function(data) {
                 if (data.id !== undefined) {
                     user.id = data.id;
-                    $('#select2_matches').text('Add external user' + data.id + ', ' + data.displayName + '?');
+                    if (data.validated !== undefined) {
+                        //Unknown user
+                        $('#select2_matches').text('Add unknown user ' + data.id + '?');
+                    }
+                    else {
+                        //Validated user
+                        $('#select2_matches').text('Add external user ' + data.id + ', ' + data.displayName + '?');
+                    }
                 }
                 else {
                     $('#select2_matches').closest('li').removeClass('select2-result-selectable select2-highlighted');
