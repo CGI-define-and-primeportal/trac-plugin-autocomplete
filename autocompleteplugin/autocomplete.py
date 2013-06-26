@@ -450,8 +450,8 @@ class Select2AutoCompleteSystem(Component):
         }
     });
     '''
-        #Add formatting functions
-        stream = stream | Transformer('//head').append(tag.script(Markup('''
+            #Add formatting functions
+            stream = stream | Transformer('//head').append(tag.script(Markup('''
 function userFormatResult(user) {
     var markup = '';
     if (user.id == -1) {
@@ -505,8 +505,8 @@ function userFormatSelection(user) {
     return user.id;
 }
 ''' % user_lookup_url), type="text/javascript"))
-    
-        stream = stream | Transformer('//head').append(tag.script('''
+
+            stream = stream | Transformer('//head').append(tag.script('''
 jQuery(document).ready(
     function($) {
         %s
