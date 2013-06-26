@@ -450,8 +450,8 @@ class Select2AutoCompleteSystem(Component):
         }
     });
     '''
-        #Add formatting functions
-        stream = stream | Transformer('//head').append(tag.script(Markup('''
+            #Add formatting functions
+            stream = stream | Transformer('//head').append(tag.script(Markup('''
 function userFormatResult(user) {
     var markup = '';
     if (user.id == -1) {
@@ -463,7 +463,14 @@ function userFormatResult(user) {
             success: function(data) {
                 if (data.id !== undefined) {
                     user.id = data.id;
-                    $('#select2_matches').text('Add external user' + data.id + ', ' + data.displayName + '?');
+                    if (data.validated !== undefined) {
+                        //Unknown user
+                        $('#select2_matches').text('Add unknown user ' + data.id + '?');
+                    }
+                    else {
+                        //Validated user
+                        $('#select2_matches').text('Add external user ' + data.id + ', ' + data.displayName + '?');
+                    }
                 }
                 else {
                     $('#select2_matches').closest('li').removeClass('select2-result-selectable select2-highlighted');
@@ -498,8 +505,8 @@ function userFormatSelection(user) {
     return user.id;
 }
 ''' % user_lookup_url), type="text/javascript"))
-    
-        stream = stream | Transformer('//head').append(tag.script('''
+
+            stream = stream | Transformer('//head').append(tag.script('''
 jQuery(document).ready(
     function($) {
         %s
