@@ -28,7 +28,7 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ----------------------------------------------------------------------------
-
+import posixpath
 from trac.core import Component, implements, TracError
 from trac.config import BoolOption, ListOption
 from trac.web import IRequestFilter
@@ -42,11 +42,12 @@ from genshi.filters.transform import Transformer
 from genshi.core import Markup
 from trac.env import IEnvironmentSetupParticipant
 from trac.util.presentation import to_json
-from api import IAutoCompleteProvider, IAutoCompleteUser, ISelect2AutoCompleteUser, IADLDSAutoCompleteProvider
+from api import IAutoCompleteProvider, IAutoCompleteUser, ISelect2AutoCompleteUser, IADLDSAutoCompleteProvider, IRepositoryPathFinderElement
 from trac.core import ExtensionPoint
 from trac.perm import PermissionSystem
 from trac.web.session import DetachedSession
 from trac.cache import cached
+from trac.util import content_disposition, embedded_numbers, pathjoin
 import itertools
 import re
 from trac.admin.api import IAdminPanelProvider
@@ -54,6 +55,7 @@ from trac.util.translation import _
 
 from simplifiedpermissionsadminplugin.api import IGroupMembershipChangeListener   
 from autocompleteplugin.model import AutoCompleteGroup
+from trac.versioncontrol.api import RepositoryManager
 
 class AutoCompleteForMailinglist(Component):
     """Enable auto completing / searchable user lists for mailinglists pages."""
@@ -100,6 +102,24 @@ class AutoCompleteForTimeline(Component):
         if not self.autocomplete_on_authz:
             return {}
         return {"timeline.html": [("input[name='authors']", 'text')]}
+
+class AutoCompleteForPathTree(Component):
+    """Enable auto completing /searchable files/folders tree"""
+    implements(IRepositoryPathFinderElement)
+
+    autocomplete = BoolOption('autocomplete', 'browser_tree', True,
+                                       """Enable to provide
+                                       autocomplete/searchable file/folders tree""")
+
+    # IAutoCompleteUser
+    def get_templates(self):
+        if not self.autocomplete:
+            return {}
+        return {'diff_form.html': [
+                                   '#old_path', '#new_path',
+                                   ],
+                }
+
 
 class AutoCompleteForTickets(Component):
     """Enable auto completing / searchable user lists for ticket
@@ -514,3 +534,63 @@ jQuery(document).ready(
 ''' % js,type="text/javascript"))
 
         return stream
+
+class AutoCompletePathTreeSystem(Component):
+    implements(ITemplateProvider, ITemplateStreamFilter, IRequestHandler)
+
+    path_finders = ExtensionPoint(IRepositoryPathFinderElement)
+    ownurl = '/ajax/browser/lookup_repo_paths'
+
+    # ITemplateProvider
+    def get_htdocs_dirs(self):
+        return [('autocomplete', resource_filename(__name__, 'htdocs'))]
+          
+    def get_templates_dirs(self):
+        return []
+    
+    #IRequestHandler
+    def match_request(self, req):
+        return req.path_info.startswith(self.ownurl)
+
+    def process_request(self, req):
+        req.perm.require('BROWSER_VIEW')
+        dirname, prefix = posixpath.split(req.args.get('q','/'))
+        rm = RepositoryManager(self.env) 
+        reponame, repos, path = rm.get_repository_by_path(dirname)
+        entries = []
+        if repos:
+            entries.extend((e.isdir, e.name, 
+                            '/' + pathjoin(repos.reponame, e.path))
+                           for e in repos.get_node(path).get_entries()
+                           if e.can_view(req.perm))
+        if not reponame:
+                entries.extend((True, repos.reponame, '/' + repos.reponame)
+                               for repos in rm.get_real_repositories()
+                               if repos.can_view(req.perm))
+        body = to_json([path for (isdir, name, path) in sorted(entries) if name.lower().startswith(prefix)])
+#        body = to_json(entries).encode('utf8')
+        req.send_response(200)
+        req.send_header('Content-Type', "application/json")
+        req.send_header('Content-Length', len(body))
+        req.end_headers()
+        req.write(body)
+
+    # ITemplateStreamFilter
+    def filter_stream(self, req, method, filename, stream, data):
+        for path_finder in self.path_finders:
+            d = path_finder.get_templates()
+            if filename in d:
+                js = self._enable_autocomplete_for_page(req, method, filename, stream, data, d[filename])
+                stream = stream | Transformer('//head').append(tag.script('''%s''' %js,type="text/javascript")) 
+        return stream
+
+    def _enable_autocomplete_for_page(self, req, method, filename, stream, data, inputs):
+        js = """jQuery(document).ready(function($) {
+        $('%(fields)s').autocomplete({
+          source: function(request, response) {
+            $.get('%(url)s', {q:request.term, format:'json'}, response)
+          },
+          minLength: 1
+        })
+      });""" %{'url': req.href().rstrip('/') + self.ownurl, 'fields': ','.join(inputs)}
+        return js

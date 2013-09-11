@@ -79,6 +79,24 @@ class IAutoCompleteUser(Interface):
                          ]}
         """
 
+class IRepositoryPathFinderElement(Interface):
+    """Extention point interface for components showing pages which
+    need autocompleting fields.
+
+    The genshi template should include HTML elements which match
+    jQuery selectors given in the list. They will be converted into
+    select elements with search facilities, based on which
+    IAutoCompleteProviders are available and the current user
+    permissions.
+    """
+
+    def get_templates():
+        """Return a dictionary like:
+        {'diff_form.html': [('#old_path','text'),
+                         ('#new_path','text'),],}
+
+        """
+
 class ISelect2AutoCompleteUser(Interface):
     """Extension point interface for components showing pages which
     need extended autocompleting fields.
