@@ -469,7 +469,7 @@ function userFormatResult(user) {
                     }
                     else {
                         //Validated user
-                        $('#select2_matches').text('Add external user ' + data.id + ', ' + data.displayName + '?');
+                        $('#select2_matches').text('Add external user ' + data.id + ', ' + data.name + '?');
                     }
                 }
                 else {
@@ -487,13 +487,13 @@ function userFormatResult(user) {
         if (user.id !== undefined) {
             markup += '<span class="username"><p>' + user.id + '</p></span>';
         }
-        if(user.displayName !== undefined || user.mail !== undefined) {
+        if(user.name !== undefined || user.email !== undefined) {
             markup += '<span class="info">';
-            if (user.displayName !== undefined) {
-                markup += '<p>' + user.displayName + '</p>';
+            if (user.name !== undefined) {
+                markup += '<p>' + user.name + '</p>';
             }
-            if (user.mail !== undefined) {
-                markup += '<p>&lt;' + user.mail + '&gt;</p>';
+            if (user.email !== undefined) {
+                markup += '<p>&lt;' + user.email + '&gt;</p>';
             }
             markup += '</span>';
         }
