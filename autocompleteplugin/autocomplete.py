@@ -30,7 +30,7 @@
 # ----------------------------------------------------------------------------
 
 from trac.core import Component, implements, TracError
-from trac.config import BoolOption, ListOption
+from trac.config import BoolOption, ListOption, FloatOption
 from trac.web import IRequestFilter
 from trac.wiki import parse_args
 from trac.web.chrome import ITemplateProvider, add_stylesheet, add_script, add_script_data
@@ -49,6 +49,7 @@ from trac.web.session import DetachedSession
 from trac.cache import cached
 import itertools
 import re
+import time
 from trac.admin.api import IAdminPanelProvider
 from trac.util.translation import _
 
@@ -276,6 +277,11 @@ class AutoCompleteSystem(Component):
     autocompleters    = ExtensionPoint(IAutoCompleteProvider)
     autocompleteusers = ExtensionPoint(IAutoCompleteUser)
 
+    cached_project_users_max_age = FloatOption(
+        'autocomplete', 'project_users_max_age', 180.0,
+        doc="The maximum age of cached project users before they are reread "
+            "from the database")
+
     # ITemplateProvider
     def get_htdocs_dirs(self):
         return [('autocomplete', resource_filename(__name__, 'htdocs'))]
@@ -336,8 +342,16 @@ class AutoCompleteSystem(Component):
         """ % js,type="text/javascript"))
         return stream
 
+    _cached_project_users = None
+    _cached_project_users_when = 0.0
+
     def _project_users(self, all=False):
         """ Get project users """
+
+        now = time.time()
+        if not all and (self._cached_project_users_when >
+                        now - self.cached_project_users_max_age):
+            return self._cached_project_users
         people = {}
         session_users = False
         from simplifiedpermissionsadminplugin.simplifiedpermissions import SimplifiedPermissions
@@ -364,21 +378,25 @@ class AutoCompleteSystem(Component):
                                                 'name': name,
                                                 'email': email})
 
+        if not all:
+            self._cached_project_users = people
+            self._cached_project_users_when = now
         return people
 
     # IGroupMembershipChangeListener methods
     def user_added(self, username, groupname):
-        pass
+        self._cached_project_users_when = 0.0
 
     def user_removed(self, username, groupname):
-        pass
+        self._cached_project_users_when = 0.0
     
     def group_added(self, groupname):
-        pass
+        self._cached_project_users_when = 0.0
 
     def group_removed(self, groupname):
         AutoCompleteGroup(self.env).remove_autocomplete_name('shown_groups', 
                                                              groupname)
+        self._cached_project_users_when = 0.0
 
 class Select2AutoCompleteSystem(Component):
     implements(ITemplateProvider, ITemplateStreamFilter)
