@@ -277,11 +277,6 @@ class AutoCompleteSystem(Component):
     autocompleters    = ExtensionPoint(IAutoCompleteProvider)
     autocompleteusers = ExtensionPoint(IAutoCompleteUser)
 
-    cached_project_users_max_age = FloatOption(
-        'autocomplete', 'project_users_max_age', 180.0,
-        doc="The maximum age of cached project users before they are reread "
-            "from the database")
-
     # ITemplateProvider
     def get_htdocs_dirs(self):
         return [('autocomplete', resource_filename(__name__, 'htdocs'))]
@@ -317,7 +312,7 @@ class AutoCompleteSystem(Component):
                 
         # we could put this into some other URL which the browser could cache?
         #show users from all groups, shown or not, on the members page
-        add_script_data(req, {'project_users': self._project_users()})
+        add_script_data(req, {'project_users': self._project_users})
 
         js = ''
         for input_ in inputs:
@@ -342,16 +337,10 @@ class AutoCompleteSystem(Component):
         """ % js,type="text/javascript"))
         return stream
 
-    _cached_project_users = None
-    _cached_project_users_when = 0.0
-
+    @cached
     def _project_users(self, all=False):
         """ Get project users """
 
-        now = time.time()
-        if not all and (self._cached_project_users_when >
-                        now - self.cached_project_users_max_age):
-            return self._cached_project_users
         people = {}
         session_users = False
         from simplifiedpermissionsadminplugin.simplifiedpermissions import SimplifiedPermissions
@@ -378,25 +367,22 @@ class AutoCompleteSystem(Component):
                                                 'name': name,
                                                 'email': email})
 
-        if not all:
-            self._cached_project_users = people
-            self._cached_project_users_when = now
         return people
 
     # IGroupMembershipChangeListener methods
     def user_added(self, username, groupname):
-        self._cached_project_users_when = 0.0
+        del self._project_users
 
     def user_removed(self, username, groupname):
-        self._cached_project_users_when = 0.0
+        del self._project_users
     
     def group_added(self, groupname):
-        self._cached_project_users_when = 0.0
+        del self._project_users
 
     def group_removed(self, groupname):
         AutoCompleteGroup(self.env).remove_autocomplete_name('shown_groups', 
                                                              groupname)
-        self._cached_project_users_when = 0.0
+        del self._project_users
 
 class Select2AutoCompleteSystem(Component):
     implements(ITemplateProvider, ITemplateStreamFilter)
