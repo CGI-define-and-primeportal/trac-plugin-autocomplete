@@ -30,7 +30,7 @@
 # ----------------------------------------------------------------------------
 
 from trac.core import Component, implements, TracError
-from trac.config import BoolOption, ListOption
+from trac.config import BoolOption, ListOption, FloatOption
 from trac.web import IRequestFilter
 from trac.wiki import parse_args
 from trac.web.chrome import ITemplateProvider, add_stylesheet, add_script, add_script_data
@@ -49,6 +49,7 @@ from trac.web.session import DetachedSession
 from trac.cache import cached
 import itertools
 import re
+import time
 from trac.admin.api import IAdminPanelProvider
 from trac.util.translation import _
 
@@ -311,7 +312,7 @@ class AutoCompleteSystem(Component):
                 
         # we could put this into some other URL which the browser could cache?
         #show users from all groups, shown or not, on the members page
-        add_script_data(req, {'project_users': self._project_users()})
+        add_script_data(req, {'project_users': self._project_users})
 
         js = ''
         for input_ in inputs:
@@ -336,8 +337,10 @@ class AutoCompleteSystem(Component):
         """ % js,type="text/javascript"))
         return stream
 
+    @cached
     def _project_users(self, all=False):
         """ Get project users """
+
         people = {}
         session_users = False
         from simplifiedpermissionsadminplugin.simplifiedpermissions import SimplifiedPermissions
@@ -368,17 +371,18 @@ class AutoCompleteSystem(Component):
 
     # IGroupMembershipChangeListener methods
     def user_added(self, username, groupname):
-        pass
+        del self._project_users
 
     def user_removed(self, username, groupname):
-        pass
+        del self._project_users
     
     def group_added(self, groupname):
-        pass
+        del self._project_users
 
     def group_removed(self, groupname):
         AutoCompleteGroup(self.env).remove_autocomplete_name('shown_groups', 
                                                              groupname)
+        del self._project_users
 
 class Select2AutoCompleteSystem(Component):
     implements(ITemplateProvider, ITemplateStreamFilter)
