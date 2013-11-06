@@ -117,25 +117,10 @@ class AutoCompleteForTickets(Component):
     def get_templates(self):
         if not self.autocomplete_on_tickets:
             return {}
-        action_ctls = [("#field-owner", 'select'),
-                       ("#field-reporter", 'select'),
-                       # Created by vanilla Trac using default workflow
-                       ("#action_reassign_reassign_owner", 'select'),
-                       ("#action_btn_fixed_select", 'select'),
-                       ]
-        return {"ticket.html": action_ctls +
-                               [("#field-qualityassurancecontact", 'select'),
-                                ('#field-cc[type=text]', 'text'),
+        return {"ticket.html": [('#field-cc[type=text]', 'text'),
                                 ('#field-keywords', 'text', '{source: %s}' % to_json(
                         self._current_keywords).encode('utf8'))],
-                # These are for fields that are pre-loaded using a stored query for instance
-                "query.html": action_ctls +
-                              [('#filters input[name$=_owner]', 'select'),
-                               ('#filters input[name$=_reporter]', 'select'),
-                               ('#filters input[name$=_qualityassurancecontact]', 'select')],
-                "admin_components.html": [("input[name='owner']", 'select')],
-                "hours_timeline.html": action_ctls +
-                              [('#filters input[name$=_owner]', 'select'),
+                "hours_timeline.html": [('#filters input[name$=_owner]', 'select'),
                                ('#filters input[name$=_reporter]', 'select'),
                                ('#filters input[name$=_qualityassurancecontact]', 'select')],}
 
