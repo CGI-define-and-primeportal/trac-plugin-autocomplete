@@ -88,6 +88,22 @@ class AutoCompleteForAuthz(Component):
             return {}
         return {"admin_authz.html": [("#addpathmember select[name='subject']", 'select')]}
 
+class AutoCompleteForGitolite(Component):
+    """Enable auto completing / searchable user lists for authz admin pages"""
+    implements(IAutoCompleteUser)
+
+    autocomplete_on_gitolite = BoolOption('autocomplete', 'gitolite', True,
+                                       """Enable to provide
+                                       autocomplete/search for user
+                                       related fields on gitolite admin
+                                       pages""")
+
+    # IAutoCompleteUser
+    def get_templates(self):
+        if not self.autocomplete_on_gitolite:
+            return {}
+        return {"admin_repository_gitolite.html": [("#addrepomember select[name='subject']", 'select')]}
+
 class AutoCompleteForTimeline(Component):
     """Enable auto completing / searchable user lists for authors on timeline page"""
     implements(IAutoCompleteUser)
