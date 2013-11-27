@@ -1,6 +1,7 @@
 /*
 #
 # Copyright (c) 2010, Logica
+# Copyright (c) 2013, CGI
 #
 # All rights reserved.
 #
@@ -30,200 +31,251 @@
 # ----------------------------------------------------------------------------
 */
 jQuery.fn.makeAutocompleteSearch = function(method, options) {
+
   method = method || 'select';
-  if (method == 'text') {
-    return this.each(function(){
-        options = $.extend({
-          // Default option values
-          // Button with label and attributes
-          button: {text:'Add', attr:{'class':'btn btn-mini btn-primary margin-left'}},
-          show_button: true,
-          // Delimeter expected
-          delimiter: /\s*(?:\s|[,;])\s*/,
-          // Autocomplete source
-          source: function(request, response) {
-            var matches = [];
-            var found_sids = [];
-            $.each(project_users, function(groupName) {
-              $.each(project_users[groupName], function(i, user) {
-                var s = user.sid.toLowerCase() + user.email.toLowerCase() + user.name.toLowerCase();
-                if (s.indexOf(request.term.toLowerCase()) != -1) {
-                  var label = user.name || user.sid;
-                  if (user.email) {
-                    label += $.format(' <$1>', user.email);
-                  }
-                  // Only add each user once no matter how many groups she is a
-                  // member of
-                  if ($.inArray(user.sid, found_sids) < 0) {
-                      matches.push({label: label, value: user.sid});
-                      found_sids.push(user.sid);
-                  }
+
+  /**
+   * Produce modified autocomplete functionality in which buttons appear
+   * representing the selected values (essentially tags)
+   */
+  if(method == 'text') {
+
+    return this.each(function() {
+
+      // Combine explictly set and default options
+      var combinedOptions = $.extend({
+        show_button: true,
+        button: {
+          text:'Add',
+          attr:{
+            'class':'btn btn-mini btn-primary margin-left'
+          }
+        },
+
+        delimiter: /\s*(?:\s|[,;])\s*/,
+
+        // Return all members matching a request
+        source: function(request, response) {
+          var matches = [],
+              found_sids = [];
+          $.each(window.project_users, function(groupName) {
+            $.each(window.project_users[groupName], function(i, user) {
+              var s = (user.sid + user.email + user.name).toLowerCase();
+              if(s.indexOf(request.term.toLowerCase()) != -1) {
+                var label = user.name || user.sid;
+                if(user.email) {
+                  label += $.format(' <$1>', user.email);
                 }
-              });
+                // Only add each member once, even if in multiple groups
+                if($.inArray(user.sid, found_sids) < 0) {
+                  matches.push({label: label, value: user.sid});
+                  found_sids.push(user.sid);
+                }
+              }
             });
-            response(matches);
-          },
-          // Autocomplete search
-          search: function() {
-            // custom minLength
-            var term = this.value;
-            if (term.length < 2) {
-              return false;
-            }
-            return true;
-          },
-          // Autocomplete focus
-          // http://jqueryui.com/demos/autocomplete/#event-focus
-          focus: function() {
-            // prevent value inserted on focus
-            return false;
-          },
-          // Autocomplete select
-          // http://jqueryui.com/demos/autocomplete/#event-select
-          select: function(event, ui) {
-            entry.data('addEntry')(ui.item.value);
-            return false;
-          }
-        }, options);
-        var infield = $(this);
-        var id = infield.attr('id');
-        var name = infield.attr('name');
-        function split(val) {
-          return $.grep(val.split(options.delimiter), function(i) { return i && true });
-        }
-        function getRealname(sid){
-        	var label = sid;
-        	$.each(project_users, function(groupName) {
-        		var found = false;
-                $.each(project_users[groupName], function(i, user) {
-                	if (user.sid == sid){
-                		found = true;
-                		label = user.name || user.sid;
-                		return;
-                	}
-                });
-                if (found)
-                	return;
-        	});
-                // This string comes from plugins/open/autocompleteplugin/autocompleteplugin/autocomplete.py
-        	return label
-        }
-        function pullinfieldVal() {
-          $('#' + id).data('addEntry')(infield.val());
-        }
-        var entries = split(infield.val());
-        // Rename and empty the input so it won't be post:ed
-        infield.attr({id: id + '-input', name: name +'-input'}).val('');
-        // For jquery validator
-        infield.addClass('text-autocomplete') // Marker for validate plugin (not currently used)
-        if (options.show_button) {
-          infield.after(
-            $('<button>').attr(options.button.attr)
-                         .text(options.button.text)
-                         .click(function(e) {
-                            pullinfieldVal();
-                            return false;
-                          })
-          );
-        }
-        infield.keyup(function(e) {
-          // Add keyword on enter-key
-          if (e.which == 13) {
-            pullinfieldVal();
-          }
-        })
-        // Create a hidden input with the value
-        var entry = $($.format('<input type="hidden" id="$1" name="$2">', id, name)).val(entries.join(', '));
-        // Move jquery.validate "required" marker to the hidden value field if applicable
-        if (infield.hasClass('required')) {
-          infield.removeClass('required')
-          entry.addClass('required')
-        }
-        // Holder for the removal buttons
-        var boxHolder = $('<div>').addClass(id + '-buttons cf');
-        entry.data('updateBoxes', function() {
-          boxHolder.empty();
-          $.each(entries, function(idx, val) {
-            boxHolder.append(
-              $('<button>').text(getRealname(val)).attr('name', val)
-            );
           });
-          $('.' + id + '-buttons button')
-              .attr('title', 'Click to remove')
-              .addClass("left margin-tiny")
-              .click(function(e) {
-                entry.data('removeEntry')($(this).attr('name'));
-                return false;
-              });
-        });
-        entry.data('addEntry', function(val) {
-          var values = split(val)
-          $(values).each(function(i, v){
-            if (v && $.inArray(v, entries) == -1) {
-              // Don't add dups
-              entries.push(v);
-              infield.val('');
-              entry.val(entries.join(', '));
-              entry.data('updateBoxes')();
-            }
-          })
-        });
-        entry.data('removeEntry', function(val) {
-          entries = $.grep(entries, function(e, i) { return e != val });
-          entry.val(entries.join(', '));
-          entry.data('updateBoxes')();
-        });
-        infield.parent().append(entry).append(boxHolder);
-        entry.data('updateBoxes')();
-        infield.autocomplete({
-          source: options.source,
-          search: options.search,
-          focus: options.focus,
-          select: options.select
-        });
-        // Handle values left over when the user leaves the control, or submits
-        // the form. This covers the case where text is pasted into the control
-        // and the autocomplate mechanism doesn't run
-        // infield.blur(pullinfieldVal);
+          response(matches);
+        },
+
+        // Minimum query length required for search
+        search: function() {
+          return this.value.length > 1;
+        },
+
+        // Prevent value from being inserted on focus
+        focus: function() {
+          return false;
+        },
+
+        // When selecting a suggestion
+        select: function(event, ui) {
+          $proxy.val(ui.item.value);
+          submit_entries();
+          return false;
+        }
+      }, options);
+
+      /**
+       * Apply jQuery UI autocomplete functionality to a clone of the selected element
+       * using the combined options above.
+       */
+      var $original    = $(this),
+          $proxy       = $original.clone().insertAfter($original),
+          $entriesBox  = $("<div class='autocomplete-entries cf'></div>").insertAfter($proxy),
+          entries      = [];
+
+      // Hide our original element
+      $original.attr("type", "hidden");
+
+      // Assign our proxy a unique ID, remove it's name
+      $proxy.attr({
+        id: $original.attr("id") + "-input",
+        name: ""
       });
-      return infield;
-  } else {
+
+      $entriesBox.attr("id", $original.attr("id") + "-entries");
+
+      // Prevent our proxy from being validated
+      $proxy.removeClass("required").addClass("text-autocomplete");
+
+      // Populate our entries box with the default values
+      submit_entries();
+
+      // Instantiate the vanilla autocomplete functionality for the proxy
+      $proxy.autocomplete({
+        source: combinedOptions.source,
+        search: combinedOptions.search,
+        select: combinedOptions.select,
+        focus:  combinedOptions.focus,
+      });
+
+      // If specified, add a button to our autocomplete
+      if(combinedOptions.show_button) {
+        var $btn = $("<button></button>");
+        $btn.attr(combinedOptions.button.attr)
+            .text(combinedOptions.button.text)
+            .on("click", submit_entries)
+            .insertAfter($proxy);
+      }
+
+      /**
+       * Return all non-empty values split by a delimiter.
+       * Whilst the default delimeter excepts whitespace, commas, and colons
+       * the delimiter used in the final input is always a comma
+       */
+      function split_by_delimiter(val) {
+        return $.grep(val.split(combinedOptions.delimiter), function(i) { return i && true });
+      }
+
+      /**
+       * Get a users real name, falling back to their sid
+       */
+      function get_name(sid) {
+        var name;
+        $.each(window.project_users, function(groupName) {
+          $.each(window.project_users[groupName], function(i, user) {
+            if(user.sid == sid) {
+              name = user.name || user.sid;
+              return;
+            }
+          });
+          if(name) return;
+        });
+        return name || sid;
+      }
+
+      /**
+       * Split up the current value of the proxy, and add all entries
+       */
+      function submit_entries(e) {
+        // Prevent the form from submitting from an entry key press
+        if(e) e.preventDefault();
+
+        var newEntries = split_by_delimiter($proxy.val()),
+            newLength  = newEntries.length;
+
+        for(var i = 0; i < newLength; i ++) add_entry(newEntries[i]);
+
+        $proxy.val("");
+      }
+
+      /**
+       * Add and remove entries
+       * Entries are both stored in the original input, and represented by
+       * buttons in the DOM which, when clicked, remove the entry.
+       * The add and remove methods manipulate the entries array as well as the DOM
+       * and then call the refresh method, which iterates over the entries, and
+       * sets the original input's value as each of the entries joined by a comma
+       */
+      function add_entry(entry) {
+        if($.inArray(entry, entries) == -1) {
+          // Add button to represent entry in DOM
+          var $entry = $("<button></button");
+          $entry.text(get_name(entry))
+                .data("value", entry)
+                .appendTo($entriesBox);
+
+          // Add entry to array
+          entries.push(entry);
+          refresh_entries();
+        }
+      }
+
+      // Doesn't take any arguments as only ran when clicking a button
+      function remove_entry() {
+        var entry = $(this).data("value"),
+            index = $.inArray(entry, entries);
+
+        if(index != -1) {
+          entries.splice(index, 1);
+          $(this).remove();
+          refresh_entries();
+        }
+      }
+
+      function refresh_entries() {
+        $original.val(entries.join(", "));
+      }
+
+      /**
+       * Events
+       */
+      $proxy.on("keyup", function(e) {
+        if(e.which == 13) submit_entries();
+      });
+
+      $entriesBox.on("click", "button", remove_entry);
+
+
+    });
+  }
+  else {
     // Handle 'select' case (default)
     return this.each(function(){
       // Merge default settings with options
-	  settings = $.extend({
+      settings = $.extend({
         minLength: 3,
         delay: 500,
         order: ["currentValue", "search", "groups", "manual"],
         source: function(request, response) {
           $.ajax({
             url: settings.url,
-            data: {q: request.term, limit: 20},
+            data: {
+              q: request.term, 
+              limit: 20
+            },
             success: function(data) {
               // Map the response to the autocomplete dropdown
               response($.map(data, function(row) {
-			  if (row.email){
-                return {data: row, value: row.sid,
-                  label: $.format('$1 <$2>', row.name, row.email)};
-				  }
-			  else {
-				return {data: row, value: row.sid,
-                  label: $.format('$1', row.name)};
-			  }
+                if(row.email) {
+                  return {
+                    data: row,
+                    value: row.sid,
+                    label: $.format('$1 <$2>', row.name, row.email)
+                  };
+                }
+                else {
+                  return {
+                    data: row, 
+                    value: row.sid,
+                    label: $.format('$1', row.name)
+                  };
+                }
               }));
             }
           });
         }
       }, options);
 
-      var infield = this;
-      var id = infield.id;
-      var name = infield.name;
-      var size = infield.size;
-      var klass = $(infield).attr('class');
-      var width = $(infield).width();
-      var selectfield = $("<select id='" + id + "' name='" + name + "' class='" + klass + "'/>");
-      var currentvalue = $(infield).val();
+      var infield = this,
+          id = infield.id,
+          name = infield.name,
+          size = infield.size,
+          klass = $(infield).attr('class'),
+          width = $(infield).width(),
+          selectfield = $("<select id='" + id + "' name='" + name + "' class='" + klass + "'/>"),
+          currentvalue = $(infield).val();
+
       selectfield.attr('disabled',$(infield).attr('disabled'));
       $(infield).replaceWith(selectfield);
       var option;
@@ -256,17 +308,20 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
       // Create an <optgroup> for the named group of users `n`
       function groupOptGroup(n) {
         var optgroup = $('<optgroup label="' + n + '"></optgroup>');
-        for ( var u in project_users[n] ) {
+        for (var u in window.project_users[n]) {
           // http://timplode.com/wp-content/uploads/2009/07/ie_test.html :-(
           option = document.createElement('OPTION');
-          option.value = project_users[n][u].sid;
+          option.value = window.project_users[n][u].sid;
           option.className = 'group';
-          if (option.value == currentvalue)
+          if (option.value == currentvalue) {
             option.selected = true;
-          if (project_users[n][u].email)
-            option.appendChild(document.createTextNode(project_users[n][u].name + " <" + project_users[n][u].email + ">"));
-          else
-            option.appendChild(document.createTextNode(project_users[n][u].name));
+          }
+          if (window.project_users[n][u].email) {
+            option.appendChild(document.createTextNode(window.project_users[n][u].name + " <" + window.project_users[n][u].email + ">"));
+          }
+          else {
+            option.appendChild(document.createTextNode(window.project_users[n][u].name));
+          }
           optgroup.append(option);
         };
         return optgroup;
@@ -274,7 +329,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
 
       function groupsOptGroups() {
         var optgroups = [];
-        for ( n in project_users ) {
+        for(n in window.project_users) {
           optgroups.push(groupOptGroup(n).get(0));
         }
         return optgroups;
@@ -292,49 +347,54 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
       }
 
       // Populate the select list
-      var optGroups_fns = {"currentValue": currentValueOptGroup,
-                           "search": searchOptGroup,
-                           "groups": groupsOptGroups,
-                           "manual": manualOptGroup
-                           };
-      for (var i=0; i < settings.order.length; i++) {
+      var optGroups_fns = {
+        currentValue: currentValueOptGroup,
+        search: searchOptGroup,
+        groups: groupsOptGroups,
+        manual: manualOptGroup
+      };
+
+      for(var i = 0; i < settings.order.length; i++) {
         var fn = optGroups_fns[settings.order[i]];
         selectfield.append(fn());
       }
 
-      selectfield.change(function() {
+      selectfield.on("change", function() {
         var selected = selectfield.find('option:selected');
-        if (selected.hasClass('currentValue')){
-          if ($("#username")){
-	     $("#username").text('');
+        if(selected.hasClass('currentValue')) {
+          if($("#username")) {
+            $("#username").text('');
           }
           return;
         }
-        if (selected.hasClass('group')) {
-          if ($("#username")){
-          	$("#username").text("Username:"+$(this).val());
-          	
+        if(selected.hasClass('group')) {
+          if($("#username")) {
+            $("#username").text("Username:"+$(this).val());
           }
           return;
         }
 
-        if ($("#username")){
-	      $("#username").text('');
+        if($("#username")) {
+          $("#username").text('');
         }
 
-        var url = selectfield.val();
-        var searchname = selected.text();
-        var inputclasses = ""
-        var inputfield = $("<input type='text' id='" + id + "' name='" + name + "' class='" + klass + "'/>");
-        if (size > 0) {
+        var url = selectfield.val(),
+            searchname = selected.text(),
+            inputclasses = "",
+            inputfield = $("<input type='text' id='" + id + "' name='" + name + "' class='" + klass + "'/>");
+
+        if(size > 0) {
           inputfield[0].size = size;
         }
+
         selectfield.replaceWith(inputfield);
         var searchnote;
-        if (url == '') {
+
+        if(url == '') {
           searchnote = $("<div class='annotation'>").html("Manual entry, type <code>domain\\username</code>...");
           inputfield.addClass("manual-entry")
-        } else {
+        }
+        else {
           settings.url = url;
           inputfield.removeClass("manual-entry").autocomplete(settings);
           searchnote = $("<div class='annotation'>").text("Searching " + searchname);
@@ -342,14 +402,14 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
 
         var cancel = $("<button class='btn btn-mini btn-primary margin-left' type='button' alt='Cancel' title='Close Manual Entry'><i class='icon-remove'></i></button>");
         cancel.tooltip({placement: "bottom"});
-        cancel.click(function() {
+        cancel.on("click", function() {
           searchnote.remove();
           inputfield.makeAutocompleteSearch(method, settings);
           cancel.tooltip("destroy").remove();
         });
 
         inputfield.keydown(function(e) {
-          if (e.keyCode == 27) {
+          if(e.keyCode == 27) {
             cancel.click();
           }
         });
@@ -361,7 +421,3 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
     });
   }
 };
-
-/* Local Variables:   */
-/* js-indent-level: 2 */
-/* End:               */

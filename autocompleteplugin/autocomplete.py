@@ -133,7 +133,7 @@ class AutoCompleteForTickets(Component):
     def get_templates(self):
         if not self.autocomplete_on_tickets:
             return {}
-        return {"ticket.html": [('#field-cc[type=text]', 'text'),
+        return {"ticket.html": [('#field-cc', 'text'),
                                 ('#field-keywords', 'text', '{source: %s}' % to_json(
                         self._current_keywords).encode('utf8'))],
                 "hours_timeline.html": [('#filters input[name$=_owner]', 'select'),
@@ -328,11 +328,10 @@ class AutoCompleteSystem(Component):
                     js += ', %s' % to_json(options)
                 else:
                     js += ', %s' % options
-            js += ')\n'
+            js += ');\n'
                 
         stream = stream | Transformer('//head').append(tag.script("""
-        jQuery(document).ready(
-        function($) {
+        jQuery(document).ready(function($) {
         %s
         });
         """ % js,type="text/javascript"))
