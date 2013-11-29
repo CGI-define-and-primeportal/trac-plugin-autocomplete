@@ -105,7 +105,8 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
           entries      = [];
 
       // Hide our original element
-      $original.attr("type", "hidden");
+      // TODO actually change the type when IE8 support is dropped
+      $original.addClass("hidden");
 
       // Assign our proxy a unique ID, remove it's name
       $proxy.attr({
