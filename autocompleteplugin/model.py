@@ -134,13 +134,7 @@ class AutoCompleteGroup(object):
         cursor = db.cursor()
         cursor.execute('SELECT value FROM autocomplete_values WHERE autocomplete_name = %s',
                        (autocomplete_name,))
-        
-        row = None
-        values = []
-        
-        for row in cursor:
-            values.append(row[0])
-    
+        values = [value for value, in cursor]
         return values
     
     def add_autocomplete(self, autocomplete_name, description=None):

@@ -223,12 +223,9 @@ class AutoCompleteBasedOnPermissions(Component):
                         yielded_sids.add(member.sid)
         else:
             perm = PermissionSystem(self.env)
-            users = []
-            for sid, permission in perm.get_all_permissions():
-                # gotta get rid of groups...
-                if sid in ("anonymous","authenticated","admin"):
-                    continue
-                users.append(sid)
+            users = [sid
+                     for sid, permission in perm.get_all_permissions()
+                     if sid not in set("anonymous", "authenticated", "admin")]
             for sid in sorted(set(users)):
                 if q in sid:
                     session = DetachedSession(self.env, sid)
@@ -298,7 +295,28 @@ class AutoCompleteSystem(Component):
         add_stylesheet(req, 'autocomplete/css/autocomplete.css')
         add_script(req, 'autocomplete/js/jquery.tracautocomplete.js')
 
-        username_completers = []
+        username_completers = list(self._username_completers(req))
+        add_script_data(req, {'username_completers': username_completers})
+                
+        # we could put this into some other URL which the browser could cache?
+        #show users from all groups, shown or not, on the members page
+        add_script_data(req, {'project_users': self._project_users})
+
+        controls = (self._split_input(input_) for input_ in inputs)
+        js = ''.join('$("%s").makeAutocompleteSearch("%s", %s);\n'
+                     % (selector, method_ or 'select',
+                        options if isinstance(options, basestring)
+                        else to_json(options))
+                     for selector, method_, options in controls)
+                
+        stream = stream | Transformer('//head').append(tag.script("""
+        jQuery(document).ready(function($) {
+        %s
+        });
+        """ % js,type="text/javascript"))
+        return stream
+
+    def _username_completers(self, req):
         for autocompleter in self.autocompleters:
             endpoint = autocompleter.get_endpoint()
             if not endpoint:
@@ -307,35 +325,18 @@ class AutoCompleteSystem(Component):
                 # Maybe we could support some 'local data' mode instead of just url?
                 # after all, we're already putting the project_users list into the page!
                 # that would mean folding AutoCompleteBasedOnSessions back into this component.
-                username_completers.append({'url': req.href(endpoint['url']),
-                                            'name': endpoint['name']})
-        add_script_data(req, {'username_completers': username_completers})
-                
-        # we could put this into some other URL which the browser could cache?
-        #show users from all groups, shown or not, on the members page
-        add_script_data(req, {'project_users': self._project_users})
+                yield {'url': req.href(endpoint['url']),
+                       'name': endpoint['name'],
+                       }
 
-        js = ''
-        for input_ in inputs:
-            if len(input_) == 3:
-                selector, method_, options = input_
-            else:
-                selector, method_ = input_
-                options = "{}"
-            js += '$("%s").makeAutocompleteSearch("%s"' % (selector, method_ or 'select')
-            if options:
-                if not isinstance(options, basestring):
-                    js += ', %s' % to_json(options)
-                else:
-                    js += ', %s' % options
-            js += ');\n'
-                
-        stream = stream | Transformer('//head').append(tag.script("""
-        jQuery(document).ready(function($) {
-        %s
-        });
-        """ % js,type="text/javascript"))
-        return stream
+    @staticmethod
+    def _split_input(input_):
+        if len(input_) == 3:
+            selector, method_, options = input_
+        else:
+            selector, method_ = input_
+            options = "{}"
+        return selector, method_, options
 
     @cached
     def _project_users(self, all=False):
@@ -353,19 +354,20 @@ class AutoCompleteSystem(Component):
                     if data['domains']:
                         group = "%s (Plus: %s)" % (group, ", ".join(data['domains']))
                         session_users = True
-                    people[group] = []
-                    for member in data['members']:
-                        people[group].append({'sid': member.sid,
-                                              'name': member.get('name',"%s (never logged in)" % member.sid),
-                                              'email': member.get('email','')})
+                    people[group] = [{'sid': member.sid,
+                                      'name': member.get('name', "%s (never logged in)" % member.sid),
+                                      'email': member.get('email', ''),
+                                      }
+                                      for member in data['members']]
         else:
             session_users = True
         if session_users:
-            people['Current Users'] = []
-            for username, name, email in self.env.get_known_users():
-                people['Current Users'].append({'sid': username,
-                                                'name': name,
-                                                'email': email})
+            known_users = self.env.get_known_users()
+            people['Current Users'] = [{'sid': username,
+                                        'name': name,
+                                        'email': email,
+                                        }
+                                        for username, name, email in known_users]
 
         return people
 
