@@ -404,34 +404,31 @@ class Select2AutoCompleteSystem(Component):
         for autocompleteuser in self.autocompleteusers:
             d = autocompleteuser.get_templates()
             if filename in d:
-                stream = self._enable_autocomplete_for_page(req, method, filename, stream, data, d[filename])
+                stream = self._enable_autocomplete_for_page(req, stream, 
+                                                            d[filename])
         return stream
 
     # Internal
-    def _enable_autocomplete_for_page(self, req, method, filename, stream, data, inputs):
+    def _enable_autocomplete_for_page(self, req, stream, inputs):
         add_stylesheet(req, 'autocomplete/css/select2_autocomplete.css')
-        user_lookup_url = req.href('/ajax/userlookup/adlds')
 
         #There should never be multiple implementations of IADLDSAutoCompleteProvider
         endpoint = self.autocompleter[0].get_endpoint()
-        if endpoint.get('permission') is None or req.perm.has_permission(endpoint.get('permission')):
+        if endpoint.get('permission') is None or req.perm.has_permission(
+                                                    endpoint.get('permission')):
             #Js to initialize select2
-            #Note that "createSearchChoice" has a bit of a hack to it, it is
-            #done this way in order to be able to add users that are not part
-            #of the search result.. But they must still be able to be added if
-            #validated.
-            #Future versions of Select2 might make this simpler in which case
-            #we should definitly rewrite that part.
             js = ''
-            selectors = [str(element + class_) for class_,element in inputs]
-
+            selectors = [str(element + class_) for class_, element in inputs]
             if selectors:
                 js += '$("%s").select2({' % ', '.join(selectors)
                 js += '''width: "500px",
                         dropdownCssClass: "ui-dialog",'''
-                js += 'placeholder: "%s %s",' % (_('Search users within this project and'), 
-                                                 endpoint.get('name'))
-                js += 'minimumInputLength: 2, ajax: {'
+                js += 'placeholder: "%s",' % (_('Search known users within' +
+                                                   ' this project and users' +
+                                                   ' in external sources.'))
+                js += 'multiple: true,'
+                js += 'tokenSeparators: [",", " ", ";"],'
+                js += 'ajax: {'
                 js += 'url: "%s",' % req.href(endpoint.get('url'))
                 js += '''
         dataType: 'json',
@@ -446,77 +443,56 @@ class Select2AutoCompleteSystem(Component):
         },
         createSearchChoice: function(term, data) {
             if (data.length == 0) {
-                return { id: -1, text:term }
+                return { id: term, text:term }
             }
         },
         formatResult: userFormatResult,
         formatSelection: userFormatSelection,
         escapeMarkup: function (m) { 
             return m; 
-        }
-    });
-    '''
+        }'''
+                js += '});'
             #Add formatting functions
             stream = stream | Transformer('//head').append(tag.script(Markup('''
 function userFormatResult(user) {
     var markup = '';
-    if (user.id == -1) {
-        //Hack to be able to add users that are not searchable.
-        markup += '<span id="select2_matches">';
-        $.ajax({
-            url: "%s",
-            data: "q=" + user.text,
-            success: function(data) {
-                if (data.id !== undefined) {
-                    user.id = data.id;
-                    if (data.validated !== undefined) {
-                        //Unknown user
-                        $('#select2_matches').text('Add unknown user ' + data.id + '?');
-                    }
-                    else {
-                        //Validated user
-                        $('#select2_matches').text('Add external user ' + data.id + ', ' + data.name + '?');
-                    }
-                }
-                else {
-                    $('#select2_matches').closest('li').removeClass('select2-result-selectable select2-highlighted');
-                }
-            }
-        });
-        markup += 'No matches found for ' + user.text + '</span>';
-    }
-    else {
-        if (user.text !== undefined) {
+    if (user.text !== undefined) {
+        console.log("user.text: " + user.text);
+        console.log("user.id: " + user.id); 
+        if (user.id !== undefined) {
+            return user.text;
+        }
+        else {
             return '<div class="header"><h5>' + user.text + '</h5></div>';
         }
-        markup = '<div class="result">';
-        if (user.id !== undefined) {
-            markup += '<span class="username"><p>' + user.id + '</p></span>';
-        }
-        if(user.name !== undefined || user.email !== undefined) {
-            markup += '<span class="info">';
-            if (user.name !== undefined) {
-                markup += '<p>' + user.name + '</p>';
-            }
-            if (user.email !== undefined) {
-                markup += '<p>&lt;' + user.email + '&gt;</p>';
-            }
-            markup += '</span>';
-        }
-        markup += '</div>';
     }
+    markup = '<div class="result">';
+    if (user.id !== undefined) {
+        markup += '<span class="username"><p>' + user.id + '</p></span>';
+    }
+    if(user.name !== undefined || user.email !== undefined) {
+        markup += '<span class="info">';
+        if (user.name !== undefined) {
+            markup += '<p>' + user.name + '</p>';
+        }
+        if (user.email !== undefined) {
+            markup += '<p>&lt;' + user.email + '&gt;</p>';
+        }
+        markup += '</span>';
+    }
+    markup += '</div>';
     return markup;
 }
 function userFormatSelection(user) {
     return user.id;
 }
-''' % user_lookup_url), type="text/javascript"))
+'''), type="text/javascript"))
 
             stream = stream | Transformer('//head').append(tag.script('''
 jQuery(document).ready(
     function($) {
         %s
 });
-''' % js,type="text/javascript"))
+''' % js, type="text/javascript"))
 
         return stream
