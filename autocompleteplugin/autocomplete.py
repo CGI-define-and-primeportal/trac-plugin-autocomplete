@@ -457,8 +457,6 @@ class Select2AutoCompleteSystem(Component):
 function userFormatResult(user) {
     var markup = '';
     if (user.text !== undefined) {
-        console.log("user.text: " + user.text);
-        console.log("user.id: " + user.id); 
         if (user.id !== undefined) {
             return user.text;
         }
