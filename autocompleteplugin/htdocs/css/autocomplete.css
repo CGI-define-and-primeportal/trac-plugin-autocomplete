@@ -1,3 +1,7 @@
+.ui-dialog input[type="text"].manual-entry {
+  width: 94%;
+}
+
 div.ac_results span.username { color: black; }
 div.ac_results span.detail { color: grey; }
 
