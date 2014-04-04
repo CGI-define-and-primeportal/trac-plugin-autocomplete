@@ -85,27 +85,45 @@ class AutoCompleteForTimeline(Component):
     def get_templates(self):
         return {"timeline.html": [("input[name='authors']", 'text')]}
 
-class AutoCompleteForTickets(Component):
+class AutoCompleteForTicketsAssignments(Component):
     """Enable auto completing / searchable user lists for ticket
     pages."""
-    implements(IAutoCompleteUser, ITicketChangeListener)
-
-    autocomplete_on_tickets = BoolOption('autocomplete', 'tickets', True,
-                                         """Enable to provide
-                                         autocomplete/search for user
-                                         related fields on ticket
-                                         pages""")
+    implements(IAutoCompleteUser)
 
     # IAutoCompleteUser
     def get_templates(self):
-        if not self.autocomplete_on_tickets:
-            return {}
-        return {"ticket.html": [('#field-cc', 'text'),
-                                ('#field-keywords', 'text', '{source: %s}' % to_json(
-                        self._current_keywords).encode('utf8'))],
-                "hours_timeline.html": [('#filters input[name$=_owner]', 'select'),
-                               ('#filters input[name$=_reporter]', 'select'),
-                               ('#filters input[name$=_qualityassurancecontact]', 'select')],}
+        action_ctls = [("#field-owner", 'select'),
+                       ("#field-reporter", 'select'),
+                       ("#field-qualityassurancecontact", 'select'),
+                       # Created by vanilla Trac using default workflow
+                       ("#action_reassign_reassign_owner", 'select'),
+                       ("#action_btn_fixed_select", 'select'),
+                       ]
+        return {"ticket.html": action_ctls,
+                # These are for fields that are pre-loaded using a stored query for instance
+                "query.html": action_ctls +
+                [('#mods-filters input[name$=_owner]', 'select'),
+                 ('#mods-filters input[name$=_reporter]', 'select'),
+                 ('#mods-filters input[name$=_qualityassurancecontact]', 'select')],
+                "admin_components.html": [("input[name='owner']", 'select')],
+                "hours_timeline.html": action_ctls +
+                [('#mods-filters input[name$=_owner]', 'select'),
+                 ('#mods-filters input[name$=_reporter]', 'select'),
+                 ('#mods-filters input[name$=_qualityassurancecontact]', 'select')]}
+
+class AutoCompleteForTicketCC(Component):
+    implements(IAutoCompleteUser)
+
+    # IAutoCompleteUser
+    def get_templates(self):
+        return {"ticket.html": [('#field-cc', 'text')]}
+
+class AutoCompleteForTicketsKeywords(Component):
+    implements(IAutoCompleteUser, ITicketChangeListener)
+    # IAutoCompleteUser
+    def get_templates(self):
+        return {"ticket.html": [('#field-keywords', 'text', '{source: %s}' % to_json(
+                        self._current_keywords).encode('utf8'))]}
 
     # ITicketChangeListener
     def ticket_created(self, ticket):
