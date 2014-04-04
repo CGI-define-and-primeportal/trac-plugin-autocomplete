@@ -283,7 +283,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
       var n;
 
       function currentValueOptGroup() {
-        var optgroup = $('<optgroup label="Current Value"></optgroup>');
+        var optgroup = $('<optgroup label="Current value"></optgroup>');
         // http://timplode.com/wp-content/uploads/2009/07/ie_test.html :-(
         option = document.createElement('OPTION');
         option.value = currentvalue;
@@ -309,19 +309,28 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
       // Create an <optgroup> for the named group of users `n`
       function groupOptGroup(n) {
         var optgroup = $('<optgroup label="' + n + '"></optgroup>');
-        for (var u in window.project_users[n]) {
+        // http://timplode.com/wp-content/uploads/2009/07/ie_test.html :-(
+        option = document.createElement('OPTION');
+        option.value = n;
+        option.className = 'group';
+        if (option.value == currentvalue) {
+            option.selected = true;
+        }
+        option.appendChild(document.createTextNode("Set to group: " + window.project_users[n]['name']));
+	optgroup.append(option);
+        for (var u in window.project_users[n]["members"]) {
           // http://timplode.com/wp-content/uploads/2009/07/ie_test.html :-(
           option = document.createElement('OPTION');
-          option.value = window.project_users[n][u].sid;
+          option.value = window.project_users[n]["members"][u].sid;
           option.className = 'group';
           if (option.value == currentvalue) {
             option.selected = true;
           }
-          if (window.project_users[n][u].email) {
-            option.appendChild(document.createTextNode(window.project_users[n][u].name + " <" + window.project_users[n][u].email + ">"));
+          if (window.project_users[n]["members"][u].email) {
+            option.appendChild(document.createTextNode(window.project_users[n]["members"][u].name + " <" + window.project_users[n]["members"][u].email + ">"));
           }
           else {
-            option.appendChild(document.createTextNode(window.project_users[n][u].name));
+            option.appendChild(document.createTextNode(window.project_users[n]["members"][u].name));
           }
           optgroup.append(option);
         };

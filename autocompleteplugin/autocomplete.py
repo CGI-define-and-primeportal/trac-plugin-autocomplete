@@ -326,24 +326,25 @@ class AutoCompleteSystem(Component):
             sp = SimplifiedPermissions(self.env)
             for group, data in sp.group_memberships().items():
                 if all or group in shown_groups:
-                    group = group.title().replace("_"," ")
+                    grouptitle = group.title().replace("_"," ")
                     if data['domains']:
                         group = "%s (Plus: %s)" % (group, ", ".join(data['domains']))
                         session_users = True
-                    people[group] = [{'sid': member.sid,
-                                      'name': member.get('name', "%s (never logged in)" % member.sid),
-                                      'email': member.get('email', ''),
-                                      }
-                                      for member in data['members']]
+                    people[group] = {'name': grouptitle}
+                    people[group]['members'] = [{'sid': member.sid,
+                                                 'name': member.get('name', "%s (never logged in)" % member.sid),
+                                                 'email': member.get('email', ''),
+                                                 }
+                                                for member in data['members']]
         else:
             session_users = True
         if session_users:
             known_users = self.env.get_known_users()
-            people['Current Users'] = [{'sid': username,
-                                        'name': name,
-                                        'email': email,
-                                        }
-                                        for username, name, email in known_users]
+            people['Current Users'] = {'members': [{'sid': username,
+                                                    'name': name,
+                                                    'email': email,
+                                                    }
+                                                   for username, name, email in known_users]}
 
         return people
 
