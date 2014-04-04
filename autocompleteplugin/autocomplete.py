@@ -60,62 +60,29 @@ class AutoCompleteForMailinglist(Component):
     """Enable auto completing / searchable user lists for mailinglists pages."""
     implements(IAutoCompleteUser)
 
-    autocomplete_on_mailinglist = BoolOption('autocomplete', 'mailinglists', True,
-                                             """Enable to provide
-                                             autocomplete/search for user
-                                             related fields on mailinglist
-                                             pages""")
-
-    # IAutoCompleteUser
     def get_templates(self):
-        if not self.autocomplete_on_mailinglist:
-            return {}
         return {"mailinglist_admin.html": [("input[name=username]", 'select')]}
 
 class AutoCompleteForAuthz(Component):
     """Enable auto completing / searchable user lists for authz admin pages"""
     implements(IAutoCompleteUser)
 
-    autocomplete_on_authz = BoolOption('autocomplete', 'authz', True,
-                                       """Enable to provide
-                                       autocomplete/search for user
-                                       related fields on authz admin
-                                       pages""")
-
     # IAutoCompleteUser
     def get_templates(self):
-        if not self.autocomplete_on_authz:
-            return {}
         return {"admin_authz.html": [("#addpathmember select[name='subject']", 'select')]}
 
 class AutoCompleteForGitolite(Component):
     """Enable auto completing / searchable user lists for authz admin pages"""
     implements(IAutoCompleteUser)
 
-    autocomplete_on_gitolite = BoolOption('autocomplete', 'gitolite', True,
-                                       """Enable to provide
-                                       autocomplete/search for user
-                                       related fields on gitolite admin
-                                       pages""")
-
-    # IAutoCompleteUser
     def get_templates(self):
-        if not self.autocomplete_on_gitolite:
-            return {}
         return {"admin_repository_gitolite.html": [("#addrepomember select[name='subject']", 'select')]}
 
 class AutoCompleteForTimeline(Component):
     """Enable auto completing / searchable user lists for authors on timeline page"""
     implements(IAutoCompleteUser)
 
-    autocomplete_on_authz = BoolOption('autocomplete', 'authors', True,
-                                       """Enable to provide
-                                       autocomplete/searchable user lists for authors on timeline page""")
-
-    # IAutoCompleteUser
     def get_templates(self):
-        if not self.autocomplete_on_authz:
-            return {}
         return {"timeline.html": [("input[name='authors']", 'text')]}
 
 class AutoCompleteForTickets(Component):
@@ -172,15 +139,6 @@ class AutoCompleteBasedOnPermissions(Component):
     """Enable auto completing / searchable user lists to search for
     users based on the session data (anyone who ever logged in.)"""
     implements(IAutoCompleteProvider, IRequestHandler)
-
-
-    autocomplete_on_tickets = BoolOption('autocomplete', 'listed members', True,
-                                         """Enable to provide search
-                                         for users who are listed in
-                                         permissions. Probably you
-                                         don't want this if your
-                                         project is open to all of a
-                                         group.""")    
 
     ownurl = '/ajax/usersearch/permissions'
 
