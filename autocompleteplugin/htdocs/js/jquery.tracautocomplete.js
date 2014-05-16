@@ -59,7 +59,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
           var matches = [],
               found_sids = [];
           $.each(window.project_users, function(groupName) {
-            $.each(window.project_users[groupName], function(i, user) {
+            $.each(window.project_users[groupName]["members"], function(i, user) {
               var s = (user.sid + user.email + user.name).toLowerCase();
               if(s.indexOf(request.term.toLowerCase()) != -1) {
                 var label = user.name || user.sid;
@@ -154,7 +154,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
       function get_name(sid) {
         var name;
         $.each(window.project_users, function(groupName) {
-          $.each(window.project_users[groupName], function(i, user) {
+          $.each(window.project_users[groupName]["members"], function(i, user) {
             if(user.sid == sid) {
               name = user.name || user.sid;
               return;
