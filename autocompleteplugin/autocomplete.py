@@ -404,7 +404,8 @@ class Select2AutoCompleteSystem(Component):
                                                    ' this project and users' +
                                                    ' in external sources.'))
                 js += 'multiple: true,'
-                js += 'tokenSeparators: [",", " ", ";"],'
+                js += 'minimumInputLength: 2,'
+                js += 'tokenSeparators: [",", ";"],'
                 js += 'ajax: {'
                 js += 'url: "%s",' % req.href(endpoint.get('url'))
                 js += '''
@@ -419,8 +420,9 @@ class Select2AutoCompleteSystem(Component):
           }
         },
         createSearchChoice: function(term, data) {
-            if (data.length == 0) {
-                return { id: term, text:term }
+            var re = /^.+\\\\.+/i;
+            if (re.test(term)){
+                return { id:term, text:term }
             }
         },
         formatResult: userFormatResult,
@@ -434,10 +436,9 @@ class Select2AutoCompleteSystem(Component):
 function userFormatResult(user) {
     var markup = '';
     if (user.text !== undefined) {
-        if (user.id !== undefined) {
-            return user.text;
-        }
-        else {
+        if (user.id !== undefined && user.id == user.text) {
+            return '<div class="manual">' + user.text + '</div>';
+        } else {
             return '<div class="header"><h5>' + user.text + '</h5></div>';
         }
     }

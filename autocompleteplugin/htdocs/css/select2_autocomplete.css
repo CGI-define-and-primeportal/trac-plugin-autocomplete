@@ -1,7 +1,9 @@
 .select2-result-label .header { background-color: #EAEAEA; width:100%; padding:7px; margin-left:-7px; }
+.select2-result-label .manual:before { content: "\f11c \00a0 Click here to add "; font-family: "FontAwesome", "Open Sans"; color: #999;}
 .select2-result-label .header h5 { font-weight: bold; }
 .select2-result-sub .result { width:100%; height:40px; }
 .select2-result-sub .result span.username { float:left }
 .select2-result-sub .result p { margin:0; padding:0; }
 .select2-result-sub .result span.info { float:right; margin:0px 10px 0; }
 .select2-result-sub .result span.info p { text-align:right }
+
