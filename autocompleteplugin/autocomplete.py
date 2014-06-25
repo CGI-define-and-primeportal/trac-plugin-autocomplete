@@ -116,7 +116,7 @@ class AutoCompleteForTicketCC(Component):
 
     # IAutoCompleteUser
     def get_templates(self):
-        return {"ticket.html": [('#field-cc', 'text')]}
+        return {"ticket.html": [('#field-cc', 'text', '{ delimiter: /(?:[,;])/ }')]}
 
 class AutoCompleteForTicketsKeywords(Component):
     implements(IAutoCompleteUser, ITicketChangeListener)
