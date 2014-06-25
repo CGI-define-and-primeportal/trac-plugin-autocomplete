@@ -52,7 +52,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
           }
         },
 
-        delimiter: /(?:[,;])/,
+        delimiter: /\s*(?:\s|[,;])\s*/,
 
         // Return all members matching a request
         source: function(request, response) {
