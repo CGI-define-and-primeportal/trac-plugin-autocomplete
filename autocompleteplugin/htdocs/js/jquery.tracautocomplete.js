@@ -145,7 +145,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
        * the delimiter used in the final input is always a comma
        */
       function split_by_delimiter(val) {
-        return $.grep(val.split(combinedOptions.delimiter), function(i) { return i && true });
+        return $.map($.grep(val.split(combinedOptions.delimiter), function(i) { return i && true }), $.trim).filter(function(x) { return x; })
       }
 
       /**
