@@ -83,7 +83,7 @@ class AutoCompleteForTimeline(Component):
     implements(IAutoCompleteUser)
 
     def get_templates(self):
-        return {"timeline.html": [("input[name='authors']", 'text')]}
+        return {"timeline.html": [("input[name='authors']", 'text', '{ delimiter: /(?:[,;])/ }')]}
 
 class AutoCompleteForTicketsAssignments(Component):
     """Enable auto completing / searchable user lists for ticket
