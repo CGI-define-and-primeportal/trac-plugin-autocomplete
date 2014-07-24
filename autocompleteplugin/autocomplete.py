@@ -420,10 +420,7 @@ class Select2AutoCompleteSystem(Component):
           }
         },
         createSearchChoice: function(term, data) {
-            var re = /^.+\\\\.+/i;
-            if (re.test(term)){
-                return { id:term, text:term }
-            }
+            return { id:term, text:term }
         },
         formatResult: userFormatResult,
         formatSelection: userFormatSelection,
@@ -436,7 +433,7 @@ class Select2AutoCompleteSystem(Component):
 function userFormatResult(user) {
     var markup = '';
     if (user.text !== undefined) {
-        if (user.id !== undefined && user.id == user.text) {
+        if (user.id == user.text) {
             return '<div class="manual">' + user.text + '</div>';
         } else {
             return '<div class="header"><h5>' + user.text + '</h5></div>';
