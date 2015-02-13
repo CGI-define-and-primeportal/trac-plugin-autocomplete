@@ -410,7 +410,7 @@ jQuery.fn.makeAutocompleteSearch = function(method, options) {
           searchnote = $("<div class='annotation'>").text("Searching " + searchname);
         }
 
-        var cancel = $("<button class='btn btn-mini btn-primary margin-left' type='button' alt='Cancel' title='Close Manual Entry'><i class='icon-remove'></i></button>");
+        var cancel = $("<button class='btn btn-mini btn-primary margin-left' type='button' alt='Cancel' title='Close Manual Entry'><i class='fa fa-times'></i></button>");
         cancel.tooltip({placement: "bottom"});
         cancel.on("click", function() {
           searchnote.remove();
