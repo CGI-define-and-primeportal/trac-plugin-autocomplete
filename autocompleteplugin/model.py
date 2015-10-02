@@ -31,6 +31,7 @@
 from trac.core import *
 from trac.env import IEnvironmentSetupParticipant
 from trac.db.schema import Table, Column
+from trac.db.api import DatabaseManager
 from trac.config import ListOption
 from tracsqlhelper import execute_non_query, get_scalar, create_table
 

@@ -29,7 +29,10 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ----------------------------------------------------------------------------
 
-from trac.core import Component, implements
+from trac.core import Component, implements, TracError
+from trac.config import BoolOption, ListOption, FloatOption
+from trac.web import IRequestFilter
+from trac.wiki import parse_args
 from trac.web.chrome import ITemplateProvider, add_stylesheet, add_script, add_script_data
 from trac.ticket.api import ITicketChangeListener
 from pkg_resources import resource_filename
@@ -37,6 +40,7 @@ from trac.web.api import ITemplateStreamFilter, IRequestHandler
 from genshi.builder import tag
 from genshi.filters.transform import Transformer
 from genshi.core import Markup
+from trac.env import IEnvironmentSetupParticipant
 from trac.util.presentation import to_json
 from api import IAutoCompleteProvider, IAutoCompleteUser, ISelect2AutoCompleteUser, IADLDSAutoCompleteProvider
 from trac.core import ExtensionPoint
@@ -45,6 +49,8 @@ from trac.web.session import DetachedSession
 from trac.cache import cached
 import itertools
 import re
+import time
+from trac.admin.api import IAdminPanelProvider
 from trac.util.translation import _
 
 from simplifiedpermissionsadminplugin.api import IGroupMembershipChangeListener   
